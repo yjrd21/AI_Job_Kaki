@@ -6,8 +6,8 @@ spring:
     import: optional:file:.env[.properties]
 
   mongodb:
-    uri: ${MONGODB_AI_URI:mongodb://localhost:27017/fitness_ai}
-    database: ${MONGODB_AI_DATABASE:fitness_ai}
+    uri: ${MONGODB_AI_URI:mongodb://localhost:27017/jobkaki_ai}
+    database: ${MONGODB_AI_DATABASE:jobkaki_ai}
 
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}

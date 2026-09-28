@@ -4,7 +4,7 @@ set -u
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 pids=()
-rabbitmq_container="fitness-rabbitmq"
+rabbitmq_container="jobkaki-rabbitmq"
 rabbitmq_started_by_script=false
 
 if ! command -v docker >/dev/null 2>&1; then

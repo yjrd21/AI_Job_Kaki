@@ -1,8 +1,8 @@
-# Fitness Activity Recommendation Direction
+# JobKaki Activity Recommendation Direction
 
 ## Problem
 
-The current application accepts a broad activity enum and an unstructured `Map<String, Object>` metrics field, then sends only the current activity to the AI service. The desired product direction is a focused fitness progression assistant for running and weight training that recommends what the user should try next week using today's activity and historical activity data.
+The current application accepts a broad activity enum and an unstructured `Map<String, Object>` metrics field, then sends only the current activity to the AI service. The desired product direction is a focused jobkaki progression assistant for running and weight training that recommends what the user should try next week using today's activity and historical activity data.
 
 ## Proposed approach
 

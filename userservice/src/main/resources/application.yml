@@ -8,7 +8,7 @@ spring:
 
   data:
     mongodb:
-      uri: ${MONGODB_USER_URI:mongodb://localhost:27017/fitness_users}
+      uri: ${MONGODB_USER_URI:mongodb://localhost:27017/jobkaki_users}
 eureka:
   client:
     service-url:
