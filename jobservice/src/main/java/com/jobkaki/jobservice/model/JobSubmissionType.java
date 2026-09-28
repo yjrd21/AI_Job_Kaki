@@ -1,2 +1,7 @@
 package com.jobkaki.jobservice.model;
-public enum JobSubmissionType { TEXT, URL }
+
+// Represents the supported formats for submitted job information.
+public enum JobSubmissionType {
+    TEXT,
+    URL
+}
