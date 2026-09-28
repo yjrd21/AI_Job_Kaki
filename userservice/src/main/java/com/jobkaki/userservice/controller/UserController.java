@@ -59,7 +59,7 @@ public class UserController {
     public CandidateContextResponse updateContext(
             @PathVariable UUID userId,
             @PathVariable UUID contextId,
-            @RequestBody UpdateCandidateContextRequest request) {
+            @Valid @RequestBody UpdateCandidateContextRequest request) {
         return service.updateContext(userId, contextId, request);
     }
 

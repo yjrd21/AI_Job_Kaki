@@ -16,6 +16,8 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor
 @Slf4j
 public class UserService {
+    private static final int MAX_CV_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+
     private final UserRepository users;
     private final CandidateContextRepository contexts;
 
@@ -119,6 +121,7 @@ public class UserService {
         CandidateContext c = new CandidateContext();
         c.setId(UUID.randomUUID());
         c.setUserId(userId);
+        validateCvFileSize(r.cvFile());
         apply(
                 c,
                 r.cvFile(),
@@ -200,6 +203,7 @@ public class UserService {
                 .orElseThrow(() -> notFound("Candidate context", id));
 
         // Update only the fields provided in the request
+        validateCvFileSize(r.cvFile());
         apply(
                 c,
                 r.cvFile(),
@@ -264,6 +268,18 @@ public class UserService {
             c.setPreferences(prefs);
         if (flags != null)
             c.setRedFlags(flags);
+    }
+
+    // Reject CV uploads that exceed the service limit before persistence.
+    private void validateCvFileSize(byte[] cv) {
+        if (cv != null && cv.length > MAX_CV_FILE_SIZE_BYTES) {
+            log.warn(
+                    "Rejected CV upload because it exceeds the {} byte limit",
+                    MAX_CV_FILE_SIZE_BYTES);
+            throw new ResponseStatusException(
+                    HttpStatus.CONTENT_TOO_LARGE,
+                    "CV file must not exceed 5 MB");
+        }
     }
 
     // Map a user entity to a response without exposing the password

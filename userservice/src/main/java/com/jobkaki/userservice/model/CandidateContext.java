@@ -9,11 +9,12 @@ import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 @Data
 @Entity
@@ -24,7 +25,8 @@ public class CandidateContext {
     private UUID id;
     @Column(nullable = false)
     private UUID userId;
-    @Lob
+    @JdbcTypeCode(SqlTypes.BINARY)
+    @Column(columnDefinition = "bytea")
     private byte[] cvFile;
     private String cvFileName;
 
