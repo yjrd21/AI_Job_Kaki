@@ -18,9 +18,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AnalysisService {
     private final JobAnalysisRepository repository;
     private final OpenAIService openAI;
@@ -34,6 +36,10 @@ public class AnalysisService {
 
     // Analyze a job, persist the result, and publish the resulting status event.
     public void analyze(JobAnalysisRequest request) {
+        log.info(
+                "Received job analysis request: jobSubmissionId={}, userId={}",
+                request.jobSubmissionId(),
+                request.userId());
         publishStatus(
                 request.jobSubmissionId(),
                 null,
@@ -41,6 +47,10 @@ public class AnalysisService {
                 null);
 
         try {
+            log.info(
+                    "Processing job analysis: jobSubmissionId={}, status={}",
+                    request.jobSubmissionId(),
+                    JobStatus.PROCESSING);
             String answer = openAI.getAnswer(buildPrompt(request));
             JobAnalysis analysis = new JobAnalysis();
             analysis.setId(UUID.randomUUID());
@@ -56,6 +66,10 @@ public class AnalysisService {
             analysis.setMatchSummary(answer);
             analysis.setCreatedAt(LocalDateTime.now());
             repository.save(analysis);
+            log.info(
+                    "Persisted job analysis: jobSubmissionId={}, jobAnalysisId={}",
+                    request.jobSubmissionId(),
+                    analysis.getId());
 
             publishStatus(
                     request.jobSubmissionId(),
@@ -63,6 +77,12 @@ public class AnalysisService {
                     JobStatus.COMPLETED,
                     null);
         } catch (Exception exception) {
+            log.error(
+                    "Job analysis failed: jobSubmissionId={}, status={}, error={}",
+                    request.jobSubmissionId(),
+                    JobStatus.FAILED,
+                    exception.getMessage(),
+                    exception);
             publishStatus(
                     request.jobSubmissionId(),
                     null,
@@ -114,6 +134,11 @@ public class AnalysisService {
             UUID jobAnalysisId,
             JobStatus status,
             String errorMessage) {
+        log.info(
+                "Publishing job status: jobSubmissionId={}, jobAnalysisId={}, status={}",
+                jobSubmissionId,
+                jobAnalysisId,
+                status);
         rabbit.convertAndSend(
                 exchangeName,
                 statusRoutingKey,

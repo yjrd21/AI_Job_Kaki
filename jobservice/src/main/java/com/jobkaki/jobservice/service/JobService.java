@@ -17,9 +17,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class JobService {
         private final JobSubmissionRepository repository;
         private final CandidateContextProvider candidateContextProvider;
@@ -59,6 +61,11 @@ public class JobService {
 
                 // Save job submission to the database
                 repository.save(job);
+                log.info(
+                                "Created job submission: jobSubmissionId={}, userId={}, status={}",
+                                job.getId(),
+                                userId,
+                                job.getStatus());
 
                 // Send a message to the job analysis queue for processing
                 rabbit.convertAndSend(
@@ -70,6 +77,10 @@ public class JobService {
                                                 job.getSubmissionType(),
                                                 job.getJobContext(),
                                                 context));
+                log.info(
+                                "Published job analysis request: jobSubmissionId={}, status={}",
+                                job.getId(),
+                                job.getStatus());
                 
                 // Return the job submission response to the client
                 return response(job);
@@ -103,12 +114,27 @@ public class JobService {
 
         // Apply an analysis status event to the stored job submission.
         public void updateStatus(JobStatusEvent event) {
+                log.info(
+                                "Received job status update: jobSubmissionId={}, jobAnalysisId={}, status={}, errorMessage={}",
+                                event.jobSubmissionId(),
+                                event.jobAnalysisId(),
+                                event.status(),
+                                event.errorMessage());
                 repository.findById(event.jobSubmissionId())
-                                .ifPresent(job -> {
+                                .ifPresentOrElse(job -> {
                                         job.setStatus(event.status());
                                         job.setJobAnalysisId(event.jobAnalysisId());
                                         job.setUpdatedAt(LocalDateTime.now());
                                         repository.save(job);
+                                        log.info(
+                                                        "Updated job submission status: jobSubmissionId={}, jobAnalysisId={}, status={}",
+                                                        job.getId(),
+                                                        job.getJobAnalysisId(),
+                                                        job.getStatus());
+                                }, () -> {
+                                        log.warn(
+                                                        "Unable to update job status because submission was not found: jobSubmissionId={}",
+                                                        event.jobSubmissionId());
                                 });
         }
 
