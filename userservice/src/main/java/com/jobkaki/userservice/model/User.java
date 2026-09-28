@@ -11,11 +11,14 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Data
 @Document("users")
 public class User {
-    @Id private UUID id;
+    @Id
+    private UUID id;
     private String email;
     private String password;
     private String firstName;
     private String lastName;
-    @CreatedDate private LocalDateTime createdAt;
-    @LastModifiedDate private LocalDateTime updatedAt;
+    @CreatedDate
+    private LocalDateTime createdAt;
+    @LastModifiedDate
+    private LocalDateTime updatedAt;
 }

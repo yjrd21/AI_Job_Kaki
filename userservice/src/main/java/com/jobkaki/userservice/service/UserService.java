@@ -7,50 +7,299 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserService {
     private final UserRepository users;
     private final CandidateContextRepository contexts;
 
+    // Create and persists a new user account to the user database
+    // @param r the request containing the user information
+    // @return the user response
     public UserResponse create(CreateUserRequest r) {
-        if (users.existsByEmail(r.email())) throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
-        User u = new User(); u.setId(UUID.randomUUID()); u.setEmail(r.email()); u.setPassword(r.password());
-        u.setFirstName(r.firstName()); u.setLastName(r.lastName()); u.setCreatedAt(LocalDateTime.now()); u.setUpdatedAt(u.getCreatedAt());
-        return response(users.save(u));
+        // Validate the request
+        log.info("Creating user account");
+        if (users.existsByEmail(r.email())) {
+            log.warn("User creation rejected because the email already exists");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
+        }
+
+        // Create a new user
+        User u = new User();
+        u.setId(UUID.randomUUID());
+        u.setEmail(r.email());
+        u.setPassword(r.password());
+        u.setFirstName(r.firstName());
+        u.setLastName(r.lastName());
+        u.setCreatedAt(LocalDateTime.now());
+        u.setUpdatedAt(u.getCreatedAt());
+
+        // Save the user to the database
+        User saved = users.save(u);
+        log.info("Created user account with userId={}", saved.getId());
+
+        // return the user response
+        return response(saved);
     }
-    public UserResponse get(UUID id) { return response(users.findById(id).orElseThrow(() -> notFound("User"))); }
+
+    // Fetch a user by ID
+    // @param id the ID of the user to fetch
+    // @return the user response
+    public UserResponse get(UUID id) {
+        // Fetch the user from the database
+        log.debug("Fetching user account with userId={}", id);
+        User user = users.findById(id)
+                .orElseThrow(() -> notFound("User", id));
+
+        // return the user response
+        log.debug("Fetched user account with userId={}", id);
+        return response(user);
+    }
+
+    // Update a user by ID
+    // @param id the ID of the user to update
+    // @param r the request containing the updated user information
+    // @return the updated user response
     public UserResponse update(UUID id, UpdateUserRequest r) {
-        User u = users.findById(id).orElseThrow(() -> notFound("User"));
-        if (r.email() != null) u.setEmail(r.email()); if (r.password() != null) u.setPassword(r.password());
-        if (r.firstName() != null) u.setFirstName(r.firstName()); if (r.lastName() != null) u.setLastName(r.lastName());
-        u.setUpdatedAt(LocalDateTime.now()); return response(users.save(u));
+
+        // Find the user by ID
+        log.info("Updating user account with userId={}", id);
+        User u = users.findById(id)
+                .orElseThrow(() -> notFound("User", id));
+
+        // validate and update the user fields if they are not null
+        if (r.email() != null)
+            u.setEmail(r.email());
+        if (r.password() != null)
+            u.setPassword(r.password());
+        if (r.firstName() != null)
+            u.setFirstName(r.firstName());
+        if (r.lastName() != null)
+            u.setLastName(r.lastName());
+        u.setUpdatedAt(LocalDateTime.now());
+
+        // save the updated user to the database
+        User saved = users.save(u);
+        log.info("Updated user account with userId={}", saved.getId());
+
+        // return the updated user response
+        return response(saved);
     }
-    public void delete(UUID id) { users.deleteById(id); }
-    public CandidateContextResponse createContext(UUID userId, CreateCandidateContextRequest r) {
-        get(userId); CandidateContext c = new CandidateContext(); c.setId(UUID.randomUUID()); c.setUserId(userId);
-        apply(c, r.cvFile(), r.cvFileName(), r.targetRoles(), r.preferences(), r.redFlags());
-        c.setCreatedAt(LocalDateTime.now()); c.setUpdatedAt(c.getCreatedAt()); return contextResponse(contexts.save(c));
+
+    // Delete a user account from the user database
+    // @param id the ID of the user to delete
+    public void delete(UUID id) {
+        // Find the user before deleting the account
+        log.info("Deleting user account with userId={}", id);
+        get(id);
+
+        // Delete the user from the database
+        users.deleteById(id);
+        log.info("Deleted user account with userId={}", id);
     }
-    public List<CandidateContextResponse> contexts(UUID userId) { get(userId); return contexts.findByUserId(userId).stream().map(this::contextResponse).toList(); }
+
+    // Create and persist a candidate context for a user
+    // @param userId the ID of the user who owns the candidate context
+    // @param r the request containing the candidate context information
+    // @return the candidate context response
+    public CandidateContextResponse createContext(
+            UUID userId,
+            CreateCandidateContextRequest r) {
+        // Validate that the user exists
+        log.info("Creating candidate context for userId={}", userId);
+        get(userId);
+
+        // Create a new candidate context
+        CandidateContext c = new CandidateContext();
+        c.setId(UUID.randomUUID());
+        c.setUserId(userId);
+        apply(
+                c,
+                r.cvFile(),
+                r.cvFileName(),
+                r.targetRoles(),
+                r.preferences(),
+                r.redFlags());
+        c.setCreatedAt(LocalDateTime.now());
+        c.setUpdatedAt(c.getCreatedAt());
+
+        // Save the candidate context to the database
+        CandidateContext saved = contexts.save(c);
+        log.info(
+                "Created candidate context with contextId={} for userId={}",
+                saved.getId(),
+                userId);
+
+        // Return the candidate context response
+        return contextResponse(saved);
+    }
+
+    // Fetch all candidate contexts belonging to a user
+    // @param userId the ID of the user whose contexts should be fetched
+    // @return a list of candidate context responses
+    public List<CandidateContextResponse> contexts(UUID userId) {
+        // Validate that the user exists
+        log.debug("Fetching candidate contexts for userId={}", userId);
+        get(userId);
+
+        // Fetch and map the candidate contexts from the database
+        List<CandidateContextResponse> responses = contexts.findByUserId(userId).stream()
+                .map(this::contextResponse)
+                .toList();
+        log.debug(
+                "Fetched {} candidate contexts for userId={}",
+                responses.size(),
+                userId);
+
+        // Return the candidate context responses
+        return responses;
+    }
+
+    // Fetch a specific candidate context belonging to a user
+    // @param userId the ID of the user who owns the candidate context
+    // @param contextId the ID of the candidate context to fetch
+    // @return the candidate context response
     public CandidateContextResponse context(UUID userId, UUID contextId) {
-        return contextResponse(contexts.findByIdAndUserId(contextId, userId).orElseThrow(() -> notFound("Candidate context")));
+        // Fetch the candidate context from the database
+        log.debug(
+                "Fetching candidate context with contextId={} for userId={}",
+                contextId,
+                userId);
+        CandidateContext context = contexts.findByIdAndUserId(contextId, userId)
+                .orElseThrow(() -> notFound("Candidate context", contextId));
+        log.debug(
+                "Fetched candidate context with contextId={} for userId={}",
+                contextId,
+                userId);
+
+        // Return the candidate context response
+        return contextResponse(context);
     }
-    public CandidateContextResponse updateContext(UUID userId, UUID id, UpdateCandidateContextRequest r) {
-        CandidateContext c = contexts.findByIdAndUserId(id, userId).orElseThrow(() -> notFound("Candidate context"));
-        apply(c, r.cvFile(), r.cvFileName(), r.targetRoles(), r.preferences(), r.redFlags()); c.setUpdatedAt(LocalDateTime.now());
-        return contextResponse(contexts.save(c));
+
+    // Update an existing candidate context
+    // @param userId the ID of the user who owns the candidate context
+    // @param id the ID of the candidate context to update
+    // @param r the request containing the updated candidate context information
+    // @return the updated candidate context response
+    public CandidateContextResponse updateContext(
+            UUID userId,
+            UUID id,
+            UpdateCandidateContextRequest r) {
+        // Find the candidate context by ID and user ID
+        log.info(
+                "Updating candidate context with contextId={} for userId={}",
+                id,
+                userId);
+        CandidateContext c = contexts.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> notFound("Candidate context", id));
+
+        // Update only the fields provided in the request
+        apply(
+                c,
+                r.cvFile(),
+                r.cvFileName(),
+                r.targetRoles(),
+                r.preferences(),
+                r.redFlags());
+        c.setUpdatedAt(LocalDateTime.now());
+
+        // Save the updated candidate context to the database
+        CandidateContext saved = contexts.save(c);
+        log.info(
+                "Updated candidate context with contextId={} for userId={}",
+                id,
+                userId);
+
+        // Return the updated candidate context response
+        return contextResponse(saved);
     }
-    public void deleteContext(UUID userId, UUID id) { context(userId, id); contexts.deleteById(id); }
-    private void apply(CandidateContext c, byte[] cv, String name, List<String> roles, List<String> prefs, List<String> flags) {
-        if (cv != null) c.setCvFile(cv); if (name != null) c.setCvFileName(name); if (roles != null) c.setTargetRoles(roles);
-        if (prefs != null) c.setPreferences(prefs); if (flags != null) c.setRedFlags(flags);
+
+    // Delete a candidate context from the user database
+    // @param userId the ID of the user who owns the candidate context
+    // @param id the ID of the candidate context to delete
+    public void deleteContext(UUID userId, UUID id) {
+        // Find the candidate context before deleting it
+        log.info(
+                "Deleting candidate context with contextId={} for userId={}",
+                id,
+                userId);
+        context(userId, id);
+
+        // Delete the candidate context from the database
+        contexts.deleteById(id);
+        log.info(
+                "Deleted candidate context with contextId={} for userId={}",
+                id,
+                userId);
     }
-    private UserResponse response(User u) { return new UserResponse(u.getId(), u.getEmail(), u.getFirstName(), u.getLastName(), u.getCreatedAt(), u.getUpdatedAt()); }
-    private CandidateContextResponse contextResponse(CandidateContext c) { return new CandidateContextResponse(c.getId(), c.getUserId(), c.getCvFileName(), c.getTargetRoles(), c.getPreferences(), c.getRedFlags(), c.getCreatedAt(), c.getUpdatedAt()); }
-    private ResponseStatusException notFound(String kind) { return new ResponseStatusException(HttpStatus.NOT_FOUND, kind + " not found"); }
+
+    // Apply the non-null candidate context fields from a request to an entity
+    // @param c the candidate context entity to update
+    // @param cv the CV file contents
+    // @param name the CV file name
+    // @param roles the target roles
+    // @param prefs the candidate preferences
+    // @param flags the candidate red flags
+    private void apply(
+            CandidateContext c,
+            byte[] cv,
+            String name,
+            List<String> roles,
+            List<String> prefs,
+            List<String> flags) {
+        // Update only fields included in the request
+        if (cv != null)
+            c.setCvFile(cv);
+        if (name != null)
+            c.setCvFileName(name);
+        if (roles != null)
+            c.setTargetRoles(roles);
+        if (prefs != null)
+            c.setPreferences(prefs);
+        if (flags != null)
+            c.setRedFlags(flags);
+    }
+
+    // Map a user entity to a response without exposing the password
+    // @param u the user entity to map
+    // @return the user response
+    private UserResponse response(User u) {
+        return new UserResponse(
+                u.getId(),
+                u.getEmail(),
+                u.getFirstName(),
+                u.getLastName(),
+                u.getCreatedAt(),
+                u.getUpdatedAt());
+    }
+
+    // Map a candidate context entity to a response without exposing the CV binary
+    // @param c the candidate context entity to map
+    // @return the candidate context response
+    private CandidateContextResponse contextResponse(CandidateContext c) {
+        return new CandidateContextResponse(
+                c.getId(),
+                c.getUserId(),
+                c.getCvFileName(),
+                c.getTargetRoles(),
+                c.getPreferences(),
+                c.getRedFlags(),
+                c.getCreatedAt(),
+                c.getUpdatedAt());
+    }
+
+    // Create a not-found exception for a missing user or candidate context
+    // @param kind the type of resource that was not found
+    // @param id the ID of the missing resource
+    // @return the not-found exception
+    private ResponseStatusException notFound(String kind, UUID id) {
+        log.warn("{} not found with id={}", kind, id);
+        return new ResponseStatusException(HttpStatus.NOT_FOUND, kind + " not found");
+    }
 }
