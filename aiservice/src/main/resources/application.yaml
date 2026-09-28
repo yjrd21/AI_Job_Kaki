@@ -5,9 +5,10 @@ spring:
   config:
     import: optional:file:.env[.properties]
 
-  mongodb:
-    uri: ${MONGODB_AI_URI:mongodb://localhost:27017/jobkaki_ai}
-    database: ${MONGODB_AI_DATABASE:jobkaki_ai}
+  data:
+    mongodb:
+      uri: ${MONGODB_AI_URI:mongodb://localhost:27017/jobkaki_ai}
+      database: ${MONGODB_AI_DATABASE:jobkaki_ai}
 
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
@@ -28,11 +29,13 @@ eureka:
 
 rabbitmq:
   exchange:
-    name: ${RABBITMQ_EXCHANGE_NAME}
+    name: ${RABBITMQ_EXCHANGE_NAME:jobkaki.job.exchange}
   queue:
-    name: ${RABBITMQ_QUEUE_NAME}
+    analysis-name: ${RABBITMQ_ANALYSIS_QUEUE_NAME:jobkaki.job.analysis}
+    status-name: ${RABBITMQ_STATUS_QUEUE_NAME:jobkaki.job.status}
   routing:
-    key: ${RABBITMQ_ROUTING_KEY}
+    analysis-key: ${RABBITMQ_ANALYSIS_ROUTING_KEY:jobkaki.job.analyze}
+    status-key: ${RABBITMQ_STATUS_ROUTING_KEY:jobkaki.job.status}
 
 server:
   port: 8083

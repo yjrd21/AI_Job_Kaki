@@ -28,6 +28,7 @@ public class OpenAIService {
         this.model = model;
     }
 
+    // Send an analysis prompt to OpenAI and return the generated text.
     public String getAnswer(String prompt) {
         if (prompt == null || prompt.isBlank()) {
             throw new RuntimeException("Prompt cannot be null or empty");
@@ -61,6 +62,7 @@ public class OpenAIService {
         return answer;
     }
 
+    // Extract the first output_text content item from the OpenAI response.
     private String extractOutputText(JsonNode response) {
         if (response == null || !response.has("output")) {
             return null;

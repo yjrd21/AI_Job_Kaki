@@ -7,28 +7,43 @@ import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitMqConfig {
+    @Value("${rabbitmq.exchange.name}")
+    private String exchangeName;
+
+    @Value("${rabbitmq.queue.analysis-name}")
+    private String analysisQueueName;
+
+    @Value("${rabbitmq.queue.status-name}")
+    private String statusQueueName;
+
+    @Value("${rabbitmq.routing.analysis-key}")
+    private String analysisRoutingKey;
+
+    @Value("${rabbitmq.routing.status-key}")
+    private String statusRoutingKey;
 
     // Declare the queue used to receive job-analysis requests.
     @Bean
     Queue analysisQueue() {
-        return new Queue("job-analysis", true);
+        return new Queue(analysisQueueName, true);
     }
 
     // Declare the queue used to receive job-analysis status updates.
     @Bean
     Queue statusQueue() {
-        return new Queue("job-status", true);
+        return new Queue(statusQueueName, true);
     }
 
     // Declare the exchange used for Job Service and AI Service messages.
     @Bean
     DirectExchange jobExchange() {
-        return new DirectExchange("job-exchange");
+        return new DirectExchange(exchangeName);
     }
 
     // Route job-analysis messages to the analysis queue.
@@ -38,7 +53,7 @@ public class RabbitMqConfig {
             DirectExchange exchange) {
         return BindingBuilder.bind(queue)
                 .to(exchange)
-                .with("job.analyze");
+                .with(analysisRoutingKey);
     }
 
     // Route job-status messages to the status queue.
@@ -48,7 +63,7 @@ public class RabbitMqConfig {
             DirectExchange exchange) {
         return BindingBuilder.bind(queue)
                 .to(exchange)
-                .with("job.status");
+                .with(statusRoutingKey);
     }
 
     // Serialize RabbitMQ messages as JSON.

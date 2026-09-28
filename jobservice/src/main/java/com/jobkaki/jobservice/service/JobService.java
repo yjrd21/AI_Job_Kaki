@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -23,6 +24,12 @@ public class JobService {
         private final JobSubmissionRepository repository;
         private final CandidateContextProvider candidateContextProvider;
         private final RabbitTemplate rabbit;
+
+        @Value("${rabbitmq.exchange.name}")
+        private String exchangeName;
+
+        @Value("${rabbitmq.routing.analysis-key}")
+        private String analysisRoutingKey;
 
         // Validate the candidate context, persist the job, and publish it for analysis.
         public JobSubmissionResponse submit(UUID userId, JobSubmissionRequest request) {
@@ -55,8 +62,8 @@ public class JobService {
 
                 // Send a message to the job analysis queue for processing
                 rabbit.convertAndSend(
-                                "job-exchange",
-                                "job.analyze",
+                                exchangeName,
+                                analysisRoutingKey,
                                 new JobAnalysisRequest(
                                                 job.getId(),
                                                 userId,

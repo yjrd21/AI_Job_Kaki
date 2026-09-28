@@ -11,7 +11,7 @@ public class JobStatusListener {
     private final JobService service;
 
     // Receive asynchronous analysis status updates and pass them to the job service.
-    @RabbitListener(queues = "job-status")
+    @RabbitListener(queues = "${rabbitmq.queue.status-name}")
     public void handle(JobStatusEvent event) {
         service.updateStatus(event);
     }

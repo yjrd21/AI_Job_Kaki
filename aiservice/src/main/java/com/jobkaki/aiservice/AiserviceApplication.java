@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AiserviceApplication {
 
+    // Start the AI Service application.
 	public static void main(String[] args) {
 		log.info("Starting AI Service");
 		SpringApplication.run(AiserviceApplication.class, args);
