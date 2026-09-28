@@ -44,30 +44,55 @@ cleanup() {
 
 trap cleanup TERM INT EXIT
 
-# Microservice #1: Eureka Infrastructure registry service.
+# Infrastructure service #1: Config server. All other services pull their
+# externalized configuration (spring.config.import: configserver:...) from
+# this service, so it must be up and serving config before they start.
+(
+    cd "$ROOT/configserver" || exit 1
+    exec ./mvnw spring-boot:run
+) &
+pids+=("$!")
+
+echo "Waiting for config server to become available on http://localhost:8888 ..."
+config_server_ready=false
+for _ in $(seq 1 60); do
+    if curl --silent --fail --output /dev/null "http://localhost:8888/user-service/default"; then
+        config_server_ready=true
+        break
+    fi
+    sleep 1
+done
+
+if [ "$config_server_ready" = true ]; then
+    echo "Config server is up."
+else
+    echo "Warning: config server did not become ready in time; continuing anyway." >&2
+fi
+
+# Microservice #2: Eureka Infrastructure registry service.
 (
     cd "$ROOT/eureka" || exit 1
     exec ./mvnw spring-boot:run
 ) &
 pids+=("$!")
 
-# Microservice #2: User micro service.
+# Microservice #3: User micro service.
 (
     cd "$ROOT/userservice" || exit 1
     exec ./mvnw spring-boot:run
 ) &
 pids+=("$!")
 
-# Microservice #3: Job micro service.
+# Microservice #4: Job micro service.
 (
     cd "$ROOT/jobservice" || exit 1
     exec ./mvnw spring-boot:run
 ) &
 pids+=("$!")
 
-# Infrastructure service #4: RabbitMQ infrastructure service in Docker container.
+# Infrastructure service #5: RabbitMQ infrastructure service in Docker container.
 
-# Microservice #5: AI microservice service.
+# Microservice #6: AI microservice service.
 (
     cd "$ROOT/aiservice" || exit 1
     exec ./mvnw spring-boot:run

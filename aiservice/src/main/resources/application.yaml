@@ -3,39 +3,6 @@ spring:
     name: ai-service
 
   config:
-    import: optional:file:.env[.properties]
-
-  data:
-    mongodb:
-      uri: ${MONGODB_AI_URI:mongodb://localhost:27017/jobkaki_ai}
-      database: ${MONGODB_AI_DATABASE:jobkaki_ai}
-
-  rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
-    
-openai:
-  api-key: ${OPENAI_API_KEY:}
-  base-url: ${OPENAI_API_BASE_URL:https://api.openai.com/v1}
-  model: ${OPENAI_API_MODEL:gpt-4o-mini}
-    
-eureka:
-  client:
-    service-url:
-      defaultZone: ${EUREKA_SERVER_URL}
-  
-
-rabbitmq:
-  exchange:
-    name: ${RABBITMQ_EXCHANGE_NAME:jobkaki.job.exchange}
-  queue:
-    analysis-name: ${RABBITMQ_ANALYSIS_QUEUE_NAME:jobkaki.job.analysis}
-    status-name: ${RABBITMQ_STATUS_QUEUE_NAME:jobkaki.job.status}
-  routing:
-    analysis-key: ${RABBITMQ_ANALYSIS_ROUTING_KEY:jobkaki.job.analyze}
-    status-key: ${RABBITMQ_STATUS_ROUTING_KEY:jobkaki.job.status}
-
-server:
-  port: 8083
+    import:
+      - optional:file:.env[.properties]
+      - optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
