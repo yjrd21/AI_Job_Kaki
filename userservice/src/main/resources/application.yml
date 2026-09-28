@@ -6,14 +6,9 @@ spring:
   config:
     import: optional:file:./.env[.properties]
 
-  datasource:
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
-
-  jpa:
-    hibernate:
-      ddl-auto: update
+  data:
+    mongodb:
+      uri: ${MONGODB_USER_URI:mongodb://localhost:27017/fitness_users}
 eureka:
   client:
     service-url:

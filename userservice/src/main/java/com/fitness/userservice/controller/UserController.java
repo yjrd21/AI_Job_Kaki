@@ -1,47 +1,48 @@
 package com.fitness.userservice.controller;
 
-import lombok.AllArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.fitness.userservice.dto.RegisterRequest;
-import com.fitness.userservice.dto.UserResponse;
-
-import jakarta.validation.Valid;
+import com.fitness.userservice.dto.*;
 import com.fitness.userservice.service.UserService;
-import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.Valid;
+import java.util.List;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
 
-@RestController 
-@RequestMapping("/api/users")
-@AllArgsConstructor
-@Slf4j
+@RestController
+@RequestMapping("/users")
+@RequiredArgsConstructor
 public class UserController {
+    private final UserService service;
 
-    private UserService userService;
-
-    // Return DTO for user profile
-    @GetMapping("/{userId}")
-    public ResponseEntity<UserResponse> getUserProfile(@PathVariable String userId) {
-        log.info("GET /api/users/{} received", userId);
-        return ResponseEntity.ok(userService.getUserProfile(userId));
+    @PostMapping public UserResponse create(@Valid @RequestBody CreateUserRequest request) {
+        return service.create(request);
     }
-
-    @PostMapping("/register")
-    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
-        log.info("POST /api/users/register received for email={}", request.getEmail());
-        return ResponseEntity.ok(userService.register(request));
+    @GetMapping("/{userId}") public UserResponse get(@PathVariable UUID userId) {
+        return service.get(userId);
     }
+    @PutMapping("/{userId}") public UserResponse update(@PathVariable UUID userId,
+            @Valid @RequestBody UpdateUserRequest request) { return service.update(userId, request); }
+    @DeleteMapping("/{userId}") @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID userId) { service.delete(userId); }
 
-    @GetMapping("/{userId}/validate")
-    public ResponseEntity<Boolean> validateUser(@PathVariable String userId) {
-        log.info("GET /api/users/{}/validate received", userId);
-        return ResponseEntity.ok(userService.existByUserId(userId));
+    @PostMapping("/{userId}/candidate-contexts")
+    public CandidateContextResponse createContext(@PathVariable UUID userId,
+            @Valid @RequestBody CreateCandidateContextRequest request) {
+        return service.createContext(userId, request);
     }
-
-
+    @GetMapping("/{userId}/candidate-contexts")
+    public List<CandidateContextResponse> contexts(@PathVariable UUID userId) { return service.contexts(userId); }
+    @GetMapping("/{userId}/candidate-contexts/{contextId}")
+    public CandidateContextResponse context(@PathVariable UUID userId, @PathVariable UUID contextId) {
+        return service.context(userId, contextId);
+    }
+    @PutMapping("/{userId}/candidate-contexts/{contextId}")
+    public CandidateContextResponse updateContext(@PathVariable UUID userId, @PathVariable UUID contextId,
+            @RequestBody UpdateCandidateContextRequest request) { return service.updateContext(userId, contextId, request); }
+    @DeleteMapping("/{userId}/candidate-contexts/{contextId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteContext(@PathVariable UUID userId, @PathVariable UUID contextId) {
+        service.deleteContext(userId, contextId);
+    }
 }

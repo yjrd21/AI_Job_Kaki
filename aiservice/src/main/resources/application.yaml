@@ -6,19 +6,19 @@ spring:
     import: optional:file:.env[.properties]
 
   mongodb:
-    uri: ${MONGODB_AI_URI}
-    database: ${MONGODB_AI_DATABASE}
+    uri: ${MONGODB_AI_URI:mongodb://localhost:27017/fitness_ai}
+    database: ${MONGODB_AI_DATABASE:fitness_ai}
 
   rabbitmq:
-    host: ${RABBITMQ_HOST}
-    port: ${RABBITMQ_PORT}
-    username: ${RABBITMQ_USERNAME}
-    password: ${RABBITMQ_PASSWORD}
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
     
 openai:
-  api-key: ${OPENAI_API_KEY}
-  base-url: ${OPENAI_API_BASE_URL}
-  model: ${OPENAI_API_MODEL}
+  api-key: ${OPENAI_API_KEY:}
+  base-url: ${OPENAI_API_BASE_URL:https://api.openai.com/v1}
+  model: ${OPENAI_API_MODEL:gpt-4o-mini}
     
 eureka:
   client:

@@ -58,9 +58,9 @@ pids+=("$!")
 ) &
 pids+=("$!")
 
-# Microservice #3: Activity micro service.
+# Microservice #3: Job micro service.
 (
-    cd "$ROOT/activityservice" || exit 1
+    cd "$ROOT/jobservice" || exit 1
     exec ./mvnw spring-boot:run
 ) &
 pids+=("$!")
