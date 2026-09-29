@@ -20,7 +20,7 @@ public class HttpCandidateContextProvider implements CandidateContextProvider {
                 .build()
                 .get()
                 .uri(
-                        "/users/{userId}/candidate-contexts/{contextId}",
+                        "/api/users/{userId}/candidate-contexts/{contextId}",
                         userId,
                         contextId)
                 .retrieve()

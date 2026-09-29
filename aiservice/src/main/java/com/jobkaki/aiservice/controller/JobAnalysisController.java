@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/job-analyses")
+@RequestMapping("/api/job-analyses")
 @RequiredArgsConstructor
 public class JobAnalysisController {
     private final AnalysisService service;

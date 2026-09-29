@@ -76,23 +76,31 @@ fi
 ) &
 pids+=("$!")
 
-# Microservice #3: User micro service.
+# Infrastructure service #3: API gateway. Routes external traffic to the
+# backend services by name via Eureka service discovery.
+(
+    cd "$ROOT/gateway" || exit 1
+    exec ./mvnw spring-boot:run
+) &
+pids+=("$!")
+
+# Microservice #4: User micro service.
 (
     cd "$ROOT/userservice" || exit 1
     exec ./mvnw spring-boot:run
 ) &
 pids+=("$!")
 
-# Microservice #4: Job micro service.
+# Microservice #5: Job micro service.
 (
     cd "$ROOT/jobservice" || exit 1
     exec ./mvnw spring-boot:run
 ) &
 pids+=("$!")
 
-# Infrastructure service #5: RabbitMQ infrastructure service in Docker container.
+# Infrastructure service #6: RabbitMQ infrastructure service in Docker container.
 
-# Microservice #6: AI microservice service.
+# Microservice #7: AI microservice service.
 (
     cd "$ROOT/aiservice" || exit 1
     exec ./mvnw spring-boot:run

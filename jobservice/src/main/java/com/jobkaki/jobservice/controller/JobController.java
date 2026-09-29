@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/users/{userId}/jobs")
+@RequestMapping("/api/users/{userId}/jobs")
 @RequiredArgsConstructor
 public class JobController {
     private final JobService service;
