@@ -17,6 +17,10 @@ public class User {
     @Id
     @Column(nullable = false, updatable = false)
     private UUID id;
+
+    @Column(nullable = false, unique = true)
+    private String keycloakId;
+
     @Column(nullable = false, unique = true)
     private String email;
     @Column(nullable = false)

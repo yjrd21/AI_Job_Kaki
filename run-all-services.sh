@@ -6,6 +6,8 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 pids=()
 rabbitmq_container="jobkaki-rabbitmq"
 rabbitmq_started_by_script=false
+keycloak_container="jobkaki-keycloak"
+keycloak_started_by_script=false
 
 if ! command -v docker >/dev/null 2>&1; then
     echo "Docker is required to run RabbitMQ." >&2
@@ -32,6 +34,27 @@ else
     rabbitmq_started_by_script=true
 fi
 
+if docker container inspect "$keycloak_container" >/dev/null 2>&1; then
+    if [ "$(docker container inspect -f '{{.State.Running}}' "$keycloak_container")" != "true" ]; then
+        docker start "$keycloak_container" >/dev/null || {
+            echo "Failed to start Keycloak container '$keycloak_container'." >&2
+            exit 1
+        }
+        keycloak_started_by_script=true
+    fi
+else
+    docker run --detach \
+        --name "$keycloak_container" \
+        -p 127.0.0.1:8084:8080 \
+        -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
+        -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
+        quay.io/keycloak/keycloak:26.7.4 start-dev >/dev/null || {
+            echo "Failed to start Keycloak container '$keycloak_container'." >&2
+            exit 1
+        }
+    keycloak_started_by_script=true
+fi
+
 cleanup() {
     trap - TERM INT EXIT
     for pid in "${pids[@]}"; do
@@ -39,6 +62,9 @@ cleanup() {
     done
     if [ "$rabbitmq_started_by_script" = true ]; then
         docker stop "$rabbitmq_container" >/dev/null 2>&1 || true
+    fi
+    if [ "$keycloak_started_by_script" = true ]; then
+        docker stop "$keycloak_container" >/dev/null 2>&1 || true
     fi
 }
 
@@ -99,6 +125,9 @@ pids+=("$!")
 pids+=("$!")
 
 # Infrastructure service #6: RabbitMQ infrastructure service in Docker container.
+
+# Infrastructure service #8: Keycloak infrastructure service in Docker
+# container, for authentication/authorization.
 
 # Microservice #7: AI microservice service.
 (

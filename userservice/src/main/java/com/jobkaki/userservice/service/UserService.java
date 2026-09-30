@@ -18,35 +18,40 @@ import org.springframework.web.server.ResponseStatusException;
 public class UserService {
     private static final int MAX_CV_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
-    private final UserRepository users;
-    private final CandidateContextRepository contexts;
+    private final UserRepository userRepository;
+    private final CandidateContextRepository contextRepository;
 
-    // Create and persists a new user account to the user database
-    // @param r the request containing the user information
-    // @return the user response
-    public UserResponse create(CreateUserRequest r) {
-        // Validate the request
-        log.info("Creating user account");
-        if (users.existsByEmail(r.email())) {
-            log.warn("User creation rejected because the email already exists");
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
+    // Create or synchronize a user account using its email and Keycloak ID.
+    public UserResponse create(CreateUserRequest request) {
+        log.info("Synchronizing user account");
+
+        User userByEmail = userRepository.findByEmail(request.email()).orElse(null);
+        User userByKeycloakId = userRepository.findByKeycloakId(request.keycloakId()).orElse(null);
+
+        if (userByEmail != null && userByKeycloakId != null
+                && !userByEmail.getId().equals(userByKeycloakId.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Email and Keycloak ID are already associated with different users");
         }
 
-        // Create a new user
-        User u = new User();
-        u.setId(UUID.randomUUID());
-        u.setEmail(r.email());
-        u.setPassword(r.password());
-        u.setFirstName(r.firstName());
-        u.setLastName(r.lastName());
-        u.setCreatedAt(LocalDateTime.now());
-        u.setUpdatedAt(u.getCreatedAt());
+        LocalDateTime now = LocalDateTime.now();
+        User user = userByKeycloakId != null ? userByKeycloakId : userByEmail;
+        if (user == null) {
+            user = new User();
+            user.setId(UUID.randomUUID());
+            user.setPassword(request.password());
+            user.setCreatedAt(now);
+        }
 
-        // Save the user to the database
-        User saved = users.save(u);
-        log.info("Created user account with userId={}", saved.getId());
+        user.setKeycloakId(request.keycloakId());
+        user.setEmail(request.email());
+        user.setFirstName(request.firstName());
+        user.setLastName(request.lastName());
+        user.setUpdatedAt(now);
 
-        // return the user response
+        User saved = userRepository.save(user);
+        log.info("Synchronized user account with userId={}", saved.getId());
         return response(saved);
     }
 
@@ -56,7 +61,7 @@ public class UserService {
     public UserResponse get(UUID id) {
         // Fetch the user from the database
         log.debug("Fetching user account with userId={}", id);
-        User user = users.findById(id)
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> notFound("User", id));
 
         // return the user response
@@ -72,7 +77,7 @@ public class UserService {
 
         // Find the user by ID
         log.info("Updating user account with userId={}", id);
-        User u = users.findById(id)
+        User u = userRepository.findById(id)
                 .orElseThrow(() -> notFound("User", id));
 
         // validate and update the user fields if they are not null
@@ -87,7 +92,7 @@ public class UserService {
         u.setUpdatedAt(LocalDateTime.now());
 
         // save the updated user to the database
-        User saved = users.save(u);
+        User saved = userRepository.save(u);
         log.info("Updated user account with userId={}", saved.getId());
 
         // return the updated user response
@@ -102,7 +107,7 @@ public class UserService {
         get(id);
 
         // Delete the user from the database
-        users.deleteById(id);
+        userRepository.deleteById(id);
         log.info("Deleted user account with userId={}", id);
     }
 
@@ -133,7 +138,7 @@ public class UserService {
         c.setUpdatedAt(c.getCreatedAt());
 
         // Save the candidate context to the database
-        CandidateContext saved = contexts.save(c);
+        CandidateContext saved = contextRepository.save(c);
         log.info(
                 "Created candidate context with contextId={} for userId={}",
                 saved.getId(),
@@ -152,7 +157,7 @@ public class UserService {
         get(userId);
 
         // Fetch and map the candidate contexts from the database
-        List<CandidateContextResponse> responses = contexts.findByUserId(userId).stream()
+        List<CandidateContextResponse> responses = contextRepository.findByUserId(userId).stream()
                 .map(this::contextResponse)
                 .toList();
         log.debug(
@@ -174,7 +179,7 @@ public class UserService {
                 "Fetching candidate context with contextId={} for userId={}",
                 contextId,
                 userId);
-        CandidateContext context = contexts.findByIdAndUserId(contextId, userId)
+        CandidateContext context = contextRepository.findByIdAndUserId(contextId, userId)
                 .orElseThrow(() -> notFound("Candidate context", contextId));
         log.debug(
                 "Fetched candidate context with contextId={} for userId={}",
@@ -199,7 +204,7 @@ public class UserService {
                 "Updating candidate context with contextId={} for userId={}",
                 id,
                 userId);
-        CandidateContext c = contexts.findByIdAndUserId(id, userId)
+        CandidateContext c = contextRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> notFound("Candidate context", id));
 
         // Update only the fields provided in the request
@@ -214,7 +219,7 @@ public class UserService {
         c.setUpdatedAt(LocalDateTime.now());
 
         // Save the updated candidate context to the database
-        CandidateContext saved = contexts.save(c);
+        CandidateContext saved = contextRepository.save(c);
         log.info(
                 "Updated candidate context with contextId={} for userId={}",
                 id,
@@ -236,7 +241,7 @@ public class UserService {
         context(userId, id);
 
         // Delete the candidate context from the database
-        contexts.deleteById(id);
+        contextRepository.deleteById(id);
         log.info(
                 "Deleted candidate context with contextId={} for userId={}",
                 id,
@@ -285,14 +290,15 @@ public class UserService {
     // Map a user entity to a response without exposing the password
     // @param u the user entity to map
     // @return the user response
-    private UserResponse response(User u) {
+    private UserResponse response(User user) {
         return new UserResponse(
-                u.getId(),
-                u.getEmail(),
-                u.getFirstName(),
-                u.getLastName(),
-                u.getCreatedAt(),
-                u.getUpdatedAt());
+                user.getId(),
+                user.getKeycloakId(),
+                user.getEmail(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getCreatedAt(),
+                user.getUpdatedAt());
     }
 
     // Map a candidate context entity to a response without exposing the CV binary
@@ -317,5 +323,10 @@ public class UserService {
     private ResponseStatusException notFound(String kind, UUID id) {
         log.warn("{} not found with id={}", kind, id);
         return new ResponseStatusException(HttpStatus.NOT_FOUND, kind + " not found");
+    }
+
+    public Boolean existByKeyCloakId(String keycloackId) {
+        log.info("Calling User Validation API for keycloakId: {}", keycloackId);
+        return userRepository.existsByKeycloakId(keycloackId);
     }
 }

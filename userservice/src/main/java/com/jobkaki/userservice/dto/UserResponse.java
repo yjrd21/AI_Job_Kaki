@@ -6,6 +6,7 @@ import java.util.UUID;
 // Represents the user data returned by the API without exposing the password.
 public record UserResponse(
         UUID id,
+        String keycloakId,
         String email,
         String firstName,
         String lastName,
