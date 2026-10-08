@@ -32,3 +32,6 @@
 
 # MongoDB Atlas credentials
 **/atlas-credentials.env
+
+# Postman collections and environments
+postman/
