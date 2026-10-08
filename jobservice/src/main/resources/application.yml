@@ -2,4 +2,4 @@ spring:
   application.name: job-service
   config.import:
     - optional:file:.env[.properties]
-    - optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+    - optional:configserver:${CONFIG_SERVER_URL}

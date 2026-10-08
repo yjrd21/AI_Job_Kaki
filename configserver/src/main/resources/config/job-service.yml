@@ -2,31 +2,31 @@ spring:
   data:
     mongodb:
       uri: ${MONGODB_JOB_URI}
-      database: ${MONGODB_JOB_DATABASE:jobkaki_jobs}
+      database: ${MONGODB_JOB_DATABASE}
   rabbitmq:
     host: ${RABBITMQ_HOST}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
 
 rabbitmq:
   exchange:
-    name: ${RABBITMQ_EXCHANGE_NAME:jobkaki.job.exchange}
+    name: ${RABBITMQ_EXCHANGE_NAME}
   queue:
-    analysis-name: ${RABBITMQ_ANALYSIS_QUEUE_NAME:jobkaki.job.analysis}
-    status-name: ${RABBITMQ_STATUS_QUEUE_NAME:jobkaki.job.status}
+    analysis-name: ${RABBITMQ_ANALYSIS_QUEUE_NAME}
+    status-name: ${RABBITMQ_STATUS_QUEUE_NAME}
   routing:
-    analysis-key: ${RABBITMQ_ANALYSIS_ROUTING_KEY:jobkaki.job.analyze}
-    status-key: ${RABBITMQ_STATUS_ROUTING_KEY:jobkaki.job.status}
+    analysis-key: ${RABBITMQ_ANALYSIS_ROUTING_KEY}
+    status-key: ${RABBITMQ_STATUS_ROUTING_KEY}
 
 services:
   user:
-    base-url: ${USER_SERVICE_BASE_URL:http://localhost:8081}
+    base-url: ${USER_SERVICE_BASE_URL}
 
 eureka:
   client:
     service-url:
-      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+      defaultZone: ${EUREKA_SERVER_URL}
 
 server:
   port: 8082
