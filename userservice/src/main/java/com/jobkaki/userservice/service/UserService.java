@@ -28,7 +28,8 @@ public class UserService {
         User userByEmail = userRepository.findByEmail(request.email()).orElse(null);
         User userByKeycloakId = userRepository.findByKeycloakId(request.keycloakId()).orElse(null);
 
-        if (userByEmail != null && userByKeycloakId != null
+        if (userByEmail != null
+                && userByKeycloakId != null
                 && !userByEmail.getId().equals(userByKeycloakId.getId())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
