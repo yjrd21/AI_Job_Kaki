@@ -1,0 +1,2 @@
+export const MAX_CV_BYTES=5*1024*1024;
+export async function fileToBase64(file:File):Promise<string>{if(file.size>MAX_CV_BYTES)throw new Error('CV must not exceed 5 MB');const data=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(new Error('Unable to read file'));reader.onload=()=>resolve(String(reader.result));reader.readAsDataURL(file)});return data.split(',')[1]||''}

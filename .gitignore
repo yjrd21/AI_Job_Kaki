@@ -1,0 +1,16 @@
+Frontend/node_modules/
+
+# Vite build output and cache
+Frontend/dist/
+Frontend/.vite/
+
+# Test coverage
+Frontend/coverage/
+
+# Local environment files (keep the example template)
+Frontend/.env
+Frontend/.env.*
+!Frontend/.env.example
+
+# TypeScript incremental build files
+Frontend/*.tsbuildinfo

@@ -1,0 +1,2 @@
+import {describe,it,expect,vi} from 'vitest';import {submitJob} from './index';import type {JobRepository} from '../../domain/contracts/JobRepository';
+describe('submitJob',()=>{it('delegates to its repository contract without using Axios',async()=>{const submit=vi.fn().mockResolvedValue({id:'job-id'});const repository={submit} as unknown as JobRepository;const input={candidateContextId:'profile-id',submissionType:'TEXT' as const,jobContext:'Job description'};await submitJob(repository,'user-id',input);expect(submit).toHaveBeenCalledWith('user-id',input)})});

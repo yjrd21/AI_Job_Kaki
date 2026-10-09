@@ -1,0 +1,2 @@
+import {describe,it,expect} from 'vitest';import {listFromLines,linesFromList,preview} from './textUtils';
+describe('text helpers',()=>{it('normalises one-item-per-line text',()=>{expect(listFromLines(' Product Manager \n\nBusiness Analyst ')).toEqual(['Product Manager','Business Analyst'])});it('joins and truncates text',()=>{expect(linesFromList(['A','B'])).toBe('A\nB');expect(preview('abcdef',3)).toBe('abc…')})});

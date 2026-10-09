@@ -1,0 +1,3 @@
+import axios from 'axios';
+export class ApiError extends Error {constructor(message:string,public readonly status?:number,public readonly code?:string){super(message);this.name='ApiError'}}
+export function normalizeApiError(error:unknown):ApiError {if(error instanceof ApiError)return error;if(axios.isAxiosError(error)){const payload=error.response?.data as {message?:string;detail?:string}|undefined;return new ApiError(payload?.message||payload?.detail||error.message||'Network request failed',error.response?.status,error.code)}return new ApiError(error instanceof Error?error.message:'Unexpected error')}

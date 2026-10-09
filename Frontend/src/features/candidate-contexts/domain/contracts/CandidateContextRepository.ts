@@ -1,0 +1,2 @@
+import type {CandidateContext,CandidateContextInput} from '../models/CandidateContext';
+export interface CandidateContextRepository {list(userId:string):Promise<CandidateContext[]>;get(userId:string,id:string):Promise<CandidateContext>;create(userId:string,payload:CandidateContextInput):Promise<CandidateContext>;update(userId:string,id:string,payload:CandidateContextInput):Promise<CandidateContext>;delete(userId:string,id:string):Promise<void>}
