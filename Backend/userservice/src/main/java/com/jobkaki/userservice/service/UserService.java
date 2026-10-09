@@ -40,7 +40,8 @@ public class UserService {
         User user = userByKeycloakId != null ? userByKeycloakId : userByEmail;
         if (user == null) {
             user = new User();
-            user.setId(UUID.randomUUID());
+            // The SQL id mirrors the Keycloak subject so clients can address users by their token's sub.
+            user.setId(subjectToUserId(request.keycloakId()));
             user.setPassword(request.password());
             user.setCreatedAt(now);
         }
@@ -329,5 +330,13 @@ public class UserService {
     public Boolean existByKeyCloakId(String keycloackId) {
         log.info("Calling User Validation API for keycloakId: {}", keycloackId);
         return userRepository.existsByKeycloakId(keycloackId);
+    }
+
+    private static UUID subjectToUserId(String keycloakId) {
+        try {
+            return UUID.fromString(keycloakId);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Keycloak ID must be a UUID");
+        }
     }
 }

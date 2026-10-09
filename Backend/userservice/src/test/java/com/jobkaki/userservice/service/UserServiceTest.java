@@ -35,18 +35,29 @@ class UserServiceTest {
 
     @Test
     void createInsertsUserWhenEmailAndKeycloakIdAreNew() {
-        CreateUserRequest request = request("new-subject", "new@example.com");
+        String subject = UUID.randomUUID().toString();
+        CreateUserRequest request = request(subject, "new@example.com");
         when(userRepository.findByEmail(request.email())).thenReturn(Optional.empty());
         when(userRepository.findByKeycloakId(request.keycloakId())).thenReturn(Optional.empty());
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         UserResponse response = userService.create(request);
 
+        assertEquals(UUID.fromString(subject), response.id());
         assertEquals(request.keycloakId(), response.keycloakId());
         assertEquals(request.email(), response.email());
         assertEquals(request.firstName(), response.firstName());
         assertEquals(request.lastName(), response.lastName());
         verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void createRejectsNonUuidKeycloakIdForNewUser() {
+        CreateUserRequest request = request("not-a-uuid", "new@example.com");
+        when(userRepository.findByEmail(request.email())).thenReturn(Optional.empty());
+        when(userRepository.findByKeycloakId(request.keycloakId())).thenReturn(Optional.empty());
+
+        assertThrows(ResponseStatusException.class, () -> userService.create(request));
     }
 
     @Test

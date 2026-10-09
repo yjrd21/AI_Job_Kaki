@@ -24,13 +24,11 @@ VITE_API_BASE_URL=http://localhost:8080
 VITE_KEYCLOAK_URL=http://localhost:8181
 VITE_KEYCLOAK_REALM=jobkaki
 VITE_KEYCLOAK_CLIENT_ID=jobkaki-frontend
-# Temporary LOCAL development mapping, not a production identity solution.
-VITE_SQL_USER_ID=<real PostgreSQL User.id UUID for signed-in Keycloak user>
 ```
 
 Adjust hostnames, ports, realm and client ID to match your running environment. Register your Vite origin as a Keycloak **Web Origin**, configure a public browser client with **Authorization Code + PKCE (S256)** and appropriate redirect URIs. Do not place a Keycloak client secret in frontend environment files.
 
-**Identity integration requirement:** The gateway forwards the Keycloak `sub` as `X-User-ID`, which is intentional and corresponds to PostgreSQL `User.keycloakId`. But the user and job controller path parameters currently expect the separately generated PostgreSQL `User.id` UUID. The frontend does not silently substitute those IDs. For local-only integration testing, supply `VITE_SQL_USER_ID`; for production, implement a secure authenticated `GET /api/users/me` or equivalent subject-to-SQL-UUID resolution on the server, then remove this environment variable. **A VITE_* variable is visible to every browser; it is not an authorization mechanism.** Backend enforcement of caller ownership and trusted identity is mandatory. This is a known integration issue, not a DTO shape mismatch.
+**Identity:** the SQL `User.id` is set equal to the Keycloak `sub` (a UUID) when the gateway first syncs the user, so the frontend uses the token's `sub` as `{userId}` in every path. The gateway rejects (403) any `/api/users/{id}/...` request whose id differs from the token subject, and overwrites any client-sent `X-User-ID` header. Users created before this change have random IDs and must be deleted/migrated.
 
 The gateway currently parses JWT claims independently in a filter; verify Spring Security authentication and inbound header sanitization before exposing user data publicly.
 
