@@ -13,6 +13,8 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
+import java.util.UUID;
+
 @Component
 @Slf4j
 @RequiredArgsConstructor
@@ -60,7 +62,7 @@ public class KeyCloakUserSyncFilter implements WebFilter {
             RegisterRequest registerRequest = new RegisterRequest();
             registerRequest.setEmail(claims.getStringClaim("email"));
             registerRequest.setKeycloakId(claims.getStringClaim("sub"));
-            registerRequest.setPassword("dummy@123123");
+            registerRequest.setPassword(UUID.randomUUID().toString());
             registerRequest.setFirstName(claims.getStringClaim("given_name"));
             registerRequest.setLastName(claims.getStringClaim("family_name"));
             return registerRequest;
