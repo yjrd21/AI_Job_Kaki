@@ -28,8 +28,8 @@ public class KeyCloakUserSyncFilter implements WebFilter {
     // Matches /api/users/{id} or /api/users/{id}/..., capturing {id} in group 1
     private static final Pattern USER_PATH = Pattern.compile("^/api/users/([^/]+)(/.*)?$");
 
-    @Override
     // Intercepts requests to synchronize Keycloak users with the local Postgres database and enforce ownership rules
+    @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         // CORS preflight requests carry no token, so let them through untouched
         if (HttpMethod.OPTIONS.equals(exchange.getRequest().getMethod())) {

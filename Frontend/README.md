@@ -21,9 +21,9 @@ Set the following in `.env`:
 ```dotenv
 VITE_USE_MOCK_API=false
 VITE_API_BASE_URL=http://localhost:8080
-VITE_KEYCLOAK_URL=http://localhost:8181
-VITE_KEYCLOAK_REALM=jobkaki
-VITE_KEYCLOAK_CLIENT_ID=jobkaki-frontend
+VITE_KEYCLOAK_URL=http://localhost:8084
+VITE_KEYCLOAK_REALM=jobkaki-oauth2
+VITE_KEYCLOAK_CLIENT_ID=oauth2-pkce-client
 ```
 
 Adjust hostnames, ports, realm and client ID to match your running environment. Register your Vite origin as a Keycloak **Web Origin**, configure a public browser client with **Authorization Code + PKCE (S256)** and appropriate redirect URIs. Do not place a Keycloak client secret in frontend environment files.
