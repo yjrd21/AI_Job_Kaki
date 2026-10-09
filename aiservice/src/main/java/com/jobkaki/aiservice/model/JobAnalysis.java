@@ -20,9 +20,10 @@ public class JobAnalysis {
     private String roleTitle;
     private String applicationDeadline;
     private String salaryRange;
-    private String redFlagAnalysis;
+    private List<String> redFlags;
     private List<RequirementMatch> requirements;
     private String matchSummary;
+    private List<String> questionsToClarify;
 
     @CreatedDate
     private LocalDateTime createdAt;

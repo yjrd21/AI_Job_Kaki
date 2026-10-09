@@ -1,16 +1,14 @@
 package com.jobkaki.aiservice.service;
 
 import com.jobkaki.aiservice.dto.JobAnalysisRequest;
+import com.jobkaki.aiservice.dto.JobAnalysisResult;
 import com.jobkaki.aiservice.dto.JobAnalysisResponse;
 import com.jobkaki.aiservice.dto.JobStatusEvent;
 import com.jobkaki.aiservice.model.JobAnalysis;
 import com.jobkaki.aiservice.model.JobStatus;
-import com.jobkaki.aiservice.model.RequirementMatch;
-import com.jobkaki.aiservice.model.RequirementMatchStatus;
 import com.jobkaki.aiservice.repository.JobAnalysisRepository;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -51,19 +49,18 @@ public class AnalysisService {
                     "Processing job analysis: jobSubmissionId={}, status={}",
                     request.jobSubmissionId(),
                     JobStatus.PROCESSING);
-            String answer = openAI.getAnswer(buildPrompt(request));
+            JobAnalysisResult result = openAI.getAnalysis(buildPrompt(request));
             JobAnalysis analysis = new JobAnalysis();
             analysis.setId(UUID.randomUUID());
             analysis.setJobSubmissionId(request.jobSubmissionId());
-            analysis.setRoleTitle(resolveRoleTitle(request));
-            analysis.setRedFlagAnalysis(
-                    "AI-generated analysis; verify external sources before acting.");
-            analysis.setRequirements(List.of(
-                    new RequirementMatch(
-                            "Candidate fit",
-                            RequirementMatchStatus.UNKNOWN,
-                            answer)));
-            analysis.setMatchSummary(answer);
+            analysis.setCompanyContext(result.companyContext());
+            analysis.setRoleTitle(result.roleTitle());
+            analysis.setApplicationDeadline(result.applicationDeadline());
+            analysis.setSalaryRange(result.salaryRange());
+            analysis.setRedFlags(result.redFlags());
+            analysis.setRequirements(result.requirements());
+            analysis.setMatchSummary(result.matchSummary());
+            analysis.setQuestionsToClarify(result.questionsToClarify());
             analysis.setCreatedAt(LocalDateTime.now());
             repository.save(analysis);
             log.info(
@@ -95,9 +92,18 @@ public class AnalysisService {
     public String buildPrompt(JobAnalysisRequest request) {
         JobAnalysisRequest.CandidateContext context = request.candidateContext();
 
-        return "Analyze this job posting for candidate fit. "
-                + "Return company context, role title, deadline, salary range, "
-                + "red flags, requirement matches, and a concise match summary.\n"
+        return "Analyze this job posting against the candidate information. "
+                + "Return only the structured output requested by the response schema. "
+                + "Extract roleTitle as the single advertised job title from the job context; "
+                + "do not use or combine the candidate's target roles as the advertised title. "
+                + "Use null for company context, role title, deadline, or salary when unavailable; "
+                + "do not invent details. Include each material job requirement as a separate "
+                + "requirement match using only MET, PARTIALLY_MET, NOT_MET, or UNKNOWN, "
+                + "with a concise explanation specific to that requirement. "
+                + "Keep matchSummary a concise overall assessment, not a copy of the individual "
+                + "requirement explanations. Return red flags and practical questions to clarify "
+                + "as separate list items; questions should address missing information, ambiguity, "
+                + "or identified concerns.\n"
                 + "Submission type: " + request.submissionType() + "\n"
                 + "Job context:\n" + request.jobContext() + "\n"
                 + "Candidate target roles: "
@@ -122,9 +128,10 @@ public class AnalysisService {
                 analysis.getRoleTitle(),
                 analysis.getApplicationDeadline(),
                 analysis.getSalaryRange(),
-                analysis.getRedFlagAnalysis(),
+                analysis.getRedFlags(),
                 analysis.getRequirements(),
                 analysis.getMatchSummary(),
+                analysis.getQuestionsToClarify(),
                 analysis.getCreatedAt());
     }
 
@@ -149,15 +156,4 @@ public class AnalysisService {
                         errorMessage));
     }
 
-    // Resolve the candidate's target roles for storage with the analysis.
-    private String resolveRoleTitle(JobAnalysisRequest request) {
-        if (request.candidateContext() == null) {
-            return "Unknown role";
-        }
-
-        return String.join(
-                ", ",
-                Optional.ofNullable(request.candidateContext().targetRoles())
-                        .orElse(List.of()));
-    }
 }

@@ -142,8 +142,13 @@ public class JobService {
         private JobSubmissionResponse response(JobSubmission job) {
                 return new JobSubmissionResponse(
                                 job.getId(),
+                                job.getUserId(),
+                                job.getCandidateContextId(),
+                                job.getSubmissionType(),
+                                job.getJobContext(),
                                 job.getStatus(),
+                                job.getJobAnalysisId(),
                                 job.getCreatedAt(),
-                                job.getJobAnalysisId());
+                                job.getUpdatedAt());
         }
 }
