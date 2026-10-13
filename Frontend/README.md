@@ -7,7 +7,7 @@ React 18 + TypeScript + Vite single-page application, designed from the current 
 1. Extract/copy **the contents** of this folder into your new `jobKaki-frontend` repository.
 2. Install Node.js 20+.
 3. Run `npm install`.
-4. Run `cp .env.example .env` (or create `.env` manually on Windows).
+4. Create `.env.local` with `VITE_API_BASE_URL`, `VITE_KEYCLOAK_URL`, `VITE_KEYCLOAK_REALM` and `VITE_KEYCLOAK_CLIENT_ID` (see "Connect your Java backend" below).
 5. Run `npm run dev`; open the local URL Vite prints.
 
 Run `npm run typecheck`, `npm run build`, and `npm test` after dependencies have installed.
@@ -80,4 +80,4 @@ All UI code is original React implementation inspired by the Figma structure and
 ## Formatting & secrets
 
 - Prettier formats on save (install the recommended VS Code extension). Manual: `npm run format` / `npm run format:check`.
-- After cloning, run `git config core.hooksPath .githooks` once. The pre-commit hook formats staged Frontend files, blocks `.env*` files (except `.env.example`), and runs `gitleaks` if installed.
+- After cloning, run `git config core.hooksPath .githooks` once. The pre-commit hook formats staged Frontend files, blocks `.env*` files, and runs `gitleaks` if installed.

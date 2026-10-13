@@ -7,7 +7,7 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 root=$(git rev-parse --show-toplevel)
 cd "$root"
 
-if git diff --cached --name-only | grep -E '(^|/)\.env(\..*)?$' | grep -v '\.env\.example$'; then
+if git diff --cached --name-only --diff-filter=ACMR | grep -qE '(^|/)\.env(\..*)?$'; then
   echo "Blocked: .env files must not be committed." >&2; exit 1
 fi
 

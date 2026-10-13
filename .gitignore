@@ -7,10 +7,9 @@ Frontend/.vite/
 # Test coverage
 Frontend/coverage/
 
-# Local environment files (keep the example template)
+# Local environment files
 Frontend/.env
 Frontend/.env.*
-!Frontend/.env.example
 
 # TypeScript incremental build files
 Frontend/*.tsbuildinfo
