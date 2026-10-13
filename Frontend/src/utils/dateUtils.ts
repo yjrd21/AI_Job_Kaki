@@ -1,1 +1,11 @@
-export function formatDate(value?:string|null){if(!value)return 'Not provided';const date=new Date(value);return Number.isNaN(date.getTime())?value:date.toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}
+export function formatDate(value?: string | null) {
+  if (!value) return "Not provided";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+}

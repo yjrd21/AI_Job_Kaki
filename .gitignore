@@ -14,3 +14,17 @@ Frontend/.env.*
 
 # TypeScript incremental build files
 Frontend/*.tsbuildinfo
+
+# OS / editor files
+.DS_Store
+**/.DS_Store
+.idea/
+*.iml
+
+# Logs
+*.log
+npm-debug.log*
+
+# Frontend extras
+Frontend/.eslintcache
+Frontend/.env.local

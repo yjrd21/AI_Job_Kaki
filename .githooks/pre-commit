@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Auto-format staged Frontend files and block secrets/env files.
+set -e
+# Git hooks (esp. from GUIs) run with a minimal PATH; make node discoverable.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+[ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh" >/dev/null 2>&1
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+
+if git diff --cached --name-only | grep -E '(^|/)\.env(\..*)?$' | grep -v '\.env\.example$'; then
+  echo "Blocked: .env files must not be committed." >&2; exit 1
+fi
+
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --no-banner || exit 1
+fi
+
+files=$(git diff --cached --name-only --diff-filter=ACM -- 'Frontend/*.ts' 'Frontend/*.tsx' 'Frontend/*.css' 'Frontend/*.json' 'Frontend/*.html' | grep -v package-lock.json || true)
+if [ -n "$files" ]; then
+  (cd Frontend && echo "$files" | sed 's#^Frontend/##' | xargs ./node_modules/.bin/prettier --write)
+  echo "$files" | xargs git add
+fi

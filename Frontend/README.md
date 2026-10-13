@@ -10,8 +10,6 @@ React 18 + TypeScript + Vite single-page application, designed from the current 
 4. Run `cp .env.example .env` (or create `.env` manually on Windows).
 5. Run `npm run dev`; open the local URL Vite prints.
 
-**Mock mode is enabled by default.** It lets you explore the dashboard, create/edit/delete candidate profiles, submit demo jobs, navigate job history, and see an illustrative analysis without Java services. Mock data resets on page reload. Its analysis is NOT generated from the posted content and should never be presented as a real result.
-
 Run `npm run typecheck`, `npm run build`, and `npm test` after dependencies have installed.
 
 ## Connect your Java backend
@@ -19,7 +17,6 @@ Run `npm run typecheck`, `npm run build`, and `npm test` after dependencies have
 Set the following in `.env`:
 
 ```dotenv
-VITE_USE_MOCK_API=false
 VITE_API_BASE_URL=http://localhost:8080
 VITE_KEYCLOAK_URL=http://localhost:8084
 VITE_KEYCLOAK_REALM=jobkaki-oauth2
@@ -34,15 +31,15 @@ The gateway currently parses JWT claims independently in a filter; verify Spring
 
 ## Screen and API mapping
 
-| Screen | Backend endpoint |
-| --- | --- |
-| Candidate Profiles | `GET/POST /api/users/{userId}/candidate-contexts` |
+| Screen                   | Backend endpoint                                                    |
+| ------------------------ | ------------------------------------------------------------------- |
+| Candidate Profiles       | `GET/POST /api/users/{userId}/candidate-contexts`                   |
 | Candidate Profile editor | `GET/PUT/DELETE /api/users/{userId}/candidate-contexts/{contextId}` |
-| Analyse Job | `POST /api/users/{userId}/jobs` |
-| Job History | `GET /api/users/{userId}/jobs` |
-| Job Details / lifecycle | `GET/DELETE /api/users/{userId}/jobs/{jobId}` |
-| Completed report | `GET /api/job-analyses/{analysisId}` |
-| Account | `GET/PUT /api/users/{userId}` |
+| Analyse Job              | `POST /api/users/{userId}/jobs`                                     |
+| Job History              | `GET /api/users/{userId}/jobs`                                      |
+| Job Details / lifecycle  | `GET/DELETE /api/users/{userId}/jobs/{jobId}`                       |
+| Completed report         | `GET /api/job-analyses/{analysisId}`                                |
+| Account                  | `GET/PUT /api/users/{userId}`                                       |
 
 The backend accepts `submissionType` = `TEXT` or `URL`; job submissions include `jobContext`, `candidateContextId`, and all nine response fields. The analysis response contains `roleTitle`, `companyContext`, `salaryRange`, `applicationDeadline`, `redFlags[]`, `requirements[]` (requirement, status, explanation), `matchSummary`, and `questionsToClarify[]`. No numeric fit score is invented.
 
@@ -50,7 +47,7 @@ The backend accepts `submissionType` = `TEXT` or `URL`; job submissions include 
 
 ## Architecture
 
-- `src/app/` — application composition, providers, configuration and a repository-backed mock data source.
+- `src/app/` — application composition, providers, configuration.
 - `src/routes/` — routing and authenticated-route guard.
 - `src/features/` — `auth`, `users`, `candidate-contexts`, and `jobs` (includes analysis).
 - `src/features/*/presentation/` — pages and hooks.
@@ -62,7 +59,7 @@ The backend accepts `submissionType` = `TEXT` or `URL`; job submissions include 
 - `src/utils/` — pure helpers.
 - `tests/` — shared test setup and MSW test handlers.
 
-Dependencies are selected in `src/app/dependencies.ts`; the same contracts work against HTTP implementations or the development mock store. Features should not import other features' private infrastructure. Domain contracts never import the HTTP client.
+Dependencies are selected in `src/app/dependencies.ts`; the contracts are implemented by HTTP repositories. Features should not import other features' private infrastructure. Domain contracts never import the HTTP client.
 
 ## Libraries
 
@@ -72,10 +69,15 @@ The current UI uses small local reusable components styled with Tailwind/CSS tha
 
 ## Before production release
 
-Resolve server-side identity mapping and ownership authorization, audit public endpoints, verify authentication across reload/refresh, implement suitable request-error reporting, test API responses against real Java services, add E2E tests, and configure build-time environment values in your deployment. Do not treat mock analysis or local developer identity settings as production solutions.
+Resolve server-side identity mapping and ownership authorization, audit public endpoints, verify authentication across reload/refresh, implement suitable request-error reporting, test API responses against real Java services, add E2E tests, and configure build-time environment values in your deployment. Do not treat local developer identity settings as production solutions.
 
 ## Source design
 
 Figma: https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture
 
 All UI code is original React implementation inspired by the Figma structure and tokens; static Figma boards are not embedded as images.
+
+## Formatting & secrets
+
+- Prettier formats on save (install the recommended VS Code extension). Manual: `npm run format` / `npm run format:check`.
+- After cloning, run `git config core.hooksPath .githooks` once. The pre-commit hook formats staged Frontend files, blocks `.env*` files (except `.env.example`), and runs `gitleaks` if installed.
