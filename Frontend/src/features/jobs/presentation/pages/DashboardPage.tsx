@@ -11,13 +11,15 @@ import { useAuth } from "../../../auth/presentation/AuthProvider";
 import { useContexts } from "../../../candidate-contexts/presentation/hooks/useContexts";
 import { useJobs } from "../hooks/useJobs";
 import { Loading, ErrorNotice } from "../../../../components/feedback/Feedback";
-import { StatusBadge } from "../components/JobStatusBadge";
-import { formatDate } from "../../../../utils/dateUtils";
+import { RecentAnalysisCard } from "../components/RecentAnalysisCard";
 export function DashboardPage() {
   const { name } = useAuth();
   const contexts = useContexts();
   const jobs = useJobs();
-  const pending = contexts.isLoading || jobs.isLoading;
+
+  // A step is only "done" or "todo" once its query succeeded; otherwise its state is unknown.
+  const stepState = (q: { isSuccess: boolean; data?: unknown[] }) =>
+    !q.isSuccess ? "unknown" : q.data?.length ? "done" : "todo";
   return (
     <div>
       <p className="eyebrow mb-4">YOUR NEXT CHAPTER</p>
@@ -35,9 +37,7 @@ export function DashboardPage() {
           New job analysis <ArrowRight size={17} />
         </Link>
       </div>
-      {pending ? (
-        <Loading />
-      ) : (
+      {
         <div className="grid lg:grid-cols-[1fr_1fr] gap-6 mb-12">
           <div className="card p-7">
             <div className="flex items-center justify-between mb-6">
@@ -53,28 +53,28 @@ export function DashboardPage() {
                 name: "Build your candidate profile",
                 to: "/profiles",
                 icon: Users,
-                done: !!contexts.data?.length,
+                state: stepState(contexts),
               },
               {
                 name: "Analyse a job opportunity",
                 to: "/analyse",
                 icon: Sparkles,
-                done: !!jobs.data?.length,
+                state: stepState(jobs),
               },
               {
                 name: "Revisit your past analyses",
                 to: "/history",
                 icon: History,
-                done: false,
+                state: "todo" as const,
               },
-            ].map(({ name, to, icon: Icon, done }, i) => (
+            ].map(({ name, to, icon: Icon, state }, i) => (
               <Link
                 to={to}
                 key={to}
                 className="entry-row flex items-center gap-4 hover:opacity-75"
               >
                 <div className="w-9 h-9 rounded-full bg-[#f2f1ec] flex items-center justify-center text-sm font-semibold">
-                  {done ? "✓" : i + 1}
+                  {state === "done" ? "✓" : state === "unknown" ? "–" : i + 1}
                 </div>
                 <div className="flex-1 text-sm font-medium">{name}</div>
                 <Icon size={16} className="muted" />
@@ -85,7 +85,14 @@ export function DashboardPage() {
           <div className="space-y-6">
             <div className="card p-7">
               <p className="eyebrow mb-5">YOUR PROFILE</p>
-              {contexts.data?.[0] ? (
+              {contexts.isPending ? (
+                <Loading />
+              ) : contexts.isError ? (
+                <ErrorNotice
+                  error={contexts.error}
+                  retry={() => void contexts.refetch()}
+                />
+              ) : contexts.data[0] ? (
                 <>
                   <h2 className="section-title mb-3">
                     {contexts.data[0].targetRoles.join(" · ")}
@@ -112,45 +119,10 @@ export function DashboardPage() {
                 </>
               )}
             </div>
-            <div className="card p-7">
-              <p className="eyebrow mb-5">RECENT ANALYSIS</p>
-              {jobs.data?.[0] ? (
-                <>
-                  <div className="flex items-center justify-between gap-3 mb-3">
-                    <h2 className="font-semibold">
-                      {jobs.data[0].submissionType === "TEXT"
-                        ? "Submitted job description"
-                        : "Submitted job URL"}
-                    </h2>
-                    <StatusBadge status={jobs.data[0].status} />
-                  </div>
-                  <p className="text-xs muted mb-4">
-                    {formatDate(jobs.data[0].createdAt)}
-                  </p>
-                  <Link
-                    to={`/jobs/${jobs.data[0].id}`}
-                    className="link-text text-sm"
-                  >
-                    View analysis →
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <p className="muted text-sm mb-4">
-                    Your first analysis will appear here.
-                  </p>
-                  <Link to="/analyse" className="link-text text-sm">
-                    Analyse a job →
-                  </Link>
-                </>
-              )}
-            </div>
+            <RecentAnalysisCard jobs={jobs} />
           </div>
         </div>
-      )}
-      {(contexts.isError || jobs.isError) && (
-        <ErrorNotice error={contexts.error || jobs.error} />
-      )}
+      }
     </div>
   );
 }

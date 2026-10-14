@@ -2,6 +2,7 @@ import type {
   JobStatus,
   RequirementMatchStatus,
 } from "../../domain/models/Job";
+
 export function StatusBadge({
   status,
 }: {
