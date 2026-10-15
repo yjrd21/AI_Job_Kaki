@@ -11,5 +11,6 @@ public record UserResponse(
         String firstName,
         String lastName,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt) {
+        LocalDateTime updatedAt,
+        boolean onboardingCompleted) {
 }
