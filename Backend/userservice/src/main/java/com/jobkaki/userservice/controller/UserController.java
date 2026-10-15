@@ -32,6 +32,18 @@ public class UserController {
         return service.update(userId, request);
     }
 
+    @PostMapping("/{userId}/onboarding/complete")
+    public UserResponse completeOnboarding(@PathVariable UUID userId,
+            @RequestHeader(value = "X-User-ID", required = false) String authenticatedUserId) {
+        // The gateway authenticates JWTs, enforces path ownership, and replaces this header.
+        // Do not expose this service directly outside the trusted network.
+        if (!userId.toString().equals(authenticatedUserId)) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Onboarding can only be completed for the authenticated user");
+        }
+        return service.completeOnboarding(userId);
+    }
+
     @DeleteMapping("/{userId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID userId) {
