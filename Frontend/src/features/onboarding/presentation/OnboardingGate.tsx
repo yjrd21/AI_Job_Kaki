@@ -1,15 +1,16 @@
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { Loading, ErrorNotice } from "../../../components/feedback/Feedback";
-import { useContexts } from "../../candidate-contexts/presentation/hooks/useContexts";
+import { useOnboardingStatus } from "./useOnboardingStatus";
 
-/** Only redirect once the API has positively confirmed no candidate profiles exist. */
+/** Onboarding is account lifecycle state, not candidate-profile count. */
 export function OnboardingGate() {
-  const contexts = useContexts();
-  const location = useLocation();
-  if (contexts.isPending) return <div className="p-10"><Loading label="Checking your candidate profiles…" /></div>;
-  if (contexts.isError) return <div className="p-10"><ErrorNotice error={contexts.error} retry={() => void contexts.refetch()} /></div>;
-  if (!contexts.data?.length && location.pathname !== "/onboarding") {
-    return <Navigate to="/onboarding" replace />;
+  const account = useOnboardingStatus();
+  if (account.isPending) return <div className="p-10"><Loading label="Checking onboarding status…" /></div>;
+  if (account.isError) return <div className="p-10"><ErrorNotice error={account.error} retry={() => void account.refetch()} /></div>;
+  // Fail closed if the backend has not yet returned the required field.
+  if (typeof account.data?.onboardingCompleted !== "boolean") {
+    return <div className="p-10" role="alert">Onboarding status is unavailable. Please try again once your account has been updated.</div>;
   }
+  if (!account.data.onboardingCompleted) return <Navigate to="/onboarding" replace />;
   return <Outlet />;
 }
