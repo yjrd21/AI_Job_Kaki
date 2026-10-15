@@ -57,6 +57,19 @@ public class UserService {
         return response(saved);
     }
 
+    /** Mark setup complete after the candidate profile is persisted. Safe to retry. */
+    public UserResponse completeOnboarding(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> notFound("User", userId));
+        if (user.isOnboardingCompleted()) return response(user);
+        if (!contextRepository.existsByUserId(userId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Create a candidate profile before completing onboarding");
+        }
+        user.setOnboardingCompleted(true);
+        return response(userRepository.save(user));
+    }
+
     // Fetch a user by ID
     // @param id the ID of the user to fetch
     // @return the user response
@@ -300,7 +313,8 @@ public class UserService {
                 user.getFirstName(),
                 user.getLastName(),
                 user.getCreatedAt(),
-                user.getUpdatedAt());
+                user.getUpdatedAt(),
+                user.isOnboardingCompleted());
     }
 
     // Map a candidate context entity to a response without exposing the CV binary
