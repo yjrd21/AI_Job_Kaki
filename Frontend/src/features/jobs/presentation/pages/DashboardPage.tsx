@@ -16,7 +16,6 @@ export function DashboardPage() {
   const { name } = useAuth();
   const contexts = useContexts();
   const jobs = useJobs();
-  const isFirstVisit = jobs.isSuccess && jobs.data.length === 0;
 
   // A step is only "done" or "todo" once its query succeeded; otherwise its state is unknown.
   const stepState = (q: { isSuccess: boolean; data?: unknown[] }) =>
@@ -27,16 +26,14 @@ export function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:justify-between gap-5 sm:items-end mb-12">
         <div>
           <h1 className="display-title mb-3">
-            {isFirstVisit ? "Welcome" : "Welcome back"}{name ? `, ${name.split(" ")[0]}` : ""}.
+            Welcome{name ? `, ${name.split(" ")[0]}` : ""}.
           </h1>
           <p className="muted max-w-xl leading-relaxed">
-            {isFirstVisit
-              ? "Your candidate profile is ready. Start by analysing your first job opportunity."
-              : "A more thoughtful way to evaluate what's next. Keep your profiles ready and explore your next opportunity with clarity."}
+            Your candidate profile is ready. Explore your next opportunity with clarity.
           </p>
         </div>
         <Link to="/analyse" className="btn btn-primary shrink-0">
-          {isFirstVisit ? "Analyse your first job" : "New job analysis"} <ArrowRight size={17} />
+          Analyse a job <ArrowRight size={17} />
         </Link>
       </div>
       <div className="grid lg:grid-cols-[1fr_1fr] gap-6 mb-12">
