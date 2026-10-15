@@ -6,6 +6,7 @@ export interface User {
   lastName: string;
   createdAt: string;
   updatedAt: string;
+  onboardingCompleted: boolean;
 }
 export type UserUpdate = Partial<
   Pick<User, "email" | "firstName" | "lastName">
