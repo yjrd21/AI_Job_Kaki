@@ -12,116 +12,90 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../features/auth/presentation/AuthProvider";
-const nav = [
+
+const navigation = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/analyse", label: "Analyse Job", icon: Sparkles },
   { to: "/history", label: "Job History", icon: History },
   { to: "/profiles", label: "Candidate Profiles", icon: Users },
   { to: "/account", label: "Account", icon: UserRound },
-];
+] as const;
+
+function currentNavigationPath(pathname: string) {
+  // Detail and result screens belong to Job History, not an unlabelled section.
+  if (pathname.startsWith("/jobs/")) return "/history";
+  return navigation.find((item) => pathname === item.to || pathname.startsWith(item.to + "/"))?.to;
+}
+
 export function AppShell() {
   const auth = useAuth();
   const [open, setOpen] = useState(false);
-  const loc = useLocation();
-  const selected = nav.find((x) => loc.pathname.startsWith(x.to));
+  const location = useLocation();
+  const activePath = currentNavigationPath(location.pathname);
+  const selected = navigation.find((item) => item.to === activePath);
+
   return (
-    <div className="min-h-screen flex bg-paper">
+    <div className="app-shell">
       {open && (
         <button
-          className="fixed inset-0 z-20 bg-black/30 md:hidden"
+          className="app-shell__scrim"
           onClick={() => setOpen(false)}
           aria-label="Close navigation"
         />
       )}
-      <aside
-        className={`${open ? "translate-x-0" : "-translate-x-full"} fixed z-30 inset-y-0 left-0 w-[244px] transition-transform md:translate-x-0 md:sticky md:top-0 md:h-screen bg-forest text-white flex flex-col p-5`}
-      >
-        <div className="flex items-center justify-between mb-9">
-          <NavLink
-            className="flex items-center gap-3"
-            to="/dashboard"
-            onClick={() => setOpen(false)}
-          >
-            <span className="w-9 h-9 rounded-[10px] bg-[#1d4439] grid place-items-center font-bold text-lg">
-              K
-            </span>
-            <strong className="font-semibold text-lg tracking-tight">
-              AI Job Kaki
-            </strong>
+      <aside className={`app-sidebar ${open ? "app-sidebar--open" : ""}`} aria-label="Application sidebar">
+        <div className="app-sidebar__brand-row">
+          <NavLink className="app-sidebar__brand" to="/dashboard" onClick={() => setOpen(false)}>
+            <span className="app-sidebar__brand-mark" aria-hidden="true">K</span>
+            <strong>AI Job Kaki</strong>
           </NavLink>
-          <button
-            onClick={() => setOpen(false)}
-            aria-label="Close navigation"
-            className="md:hidden"
-          >
+          <button className="app-sidebar__close" type="button" onClick={() => setOpen(false)} aria-label="Close navigation">
             <X size={20} />
           </button>
         </div>
-        <nav aria-label="Main navigation" className="space-y-1.5 flex-1">
-          {nav.map(({ to, label, icon: Icon }) => (
+        <nav aria-label="Main navigation" className="app-sidebar__nav">
+          {navigation.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               onClick={() => setOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 py-3 px-3 rounded-md text-[13px] ${isActive ? "bg-white/10 text-white font-semibold" : "text-[#b8c8c2] hover:bg-white/5 hover:text-white"}`
-              }
+              aria-current={activePath === to ? "page" : undefined}
+              className={`app-sidebar__nav-link ${activePath === to ? "app-sidebar__nav-link--active" : ""}`}
             >
-              <Icon size={18} />
-              {label}
+              <Icon size={18} aria-hidden="true" />
+              <span>{label}</span>
             </NavLink>
           ))}
         </nav>
-        <div className="border-t border-white/15 pt-4">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-full bg-[#c9d4c5] text-forest grid place-items-center text-sm font-bold">
-              {auth.name?.charAt(0) || "K"}
-            </div>
-            <div>
-              <div className="text-[13px] font-semibold">
-                {auth.name || "JobKaki user"}
-              </div>
-              <div className="text-xs text-[#b8c8c2]">Personal workspace</div>
+        <div className="app-sidebar__account">
+          <div className="app-sidebar__account-summary">
+            <div className="app-sidebar__avatar" aria-hidden="true">{auth.name?.charAt(0) || "K"}</div>
+            <div className="app-sidebar__account-copy">
+              <div className="app-sidebar__account-name">{auth.name || "JobKaki user"}</div>
+              <div className="app-sidebar__account-plan">Personal workspace</div>
             </div>
           </div>
-          <button
-            onClick={() => void auth.logout()}
-            className="text-xs text-[#b8c8c2] flex items-center gap-2 hover:text-white"
-          >
-            <LogOut size={15} /> Log out
+          <button type="button" onClick={() => void auth.logout()} className="app-sidebar__logout">
+            <LogOut size={15} aria-hidden="true" /> Log out
           </button>
         </div>
       </aside>
-      <div className="flex-1 min-w-0">
-        <header className="h-[72px] border-b border-line bg-paper flex items-center justify-between px-5 sm:px-9 lg:px-12">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setOpen(true)}
-              aria-label="Open navigation"
-              className="md:hidden"
-            >
+      <div className="app-shell__workspace">
+        <header className="app-shell__header">
+          <div className="app-shell__header-start">
+            <button type="button" className="app-shell__menu" onClick={() => setOpen(true)} aria-label="Open navigation" aria-expanded={open}>
               <Menu size={22} />
             </button>
-            <span className="font-medium text-[15px]">
-              {selected?.label || "AI Job Kaki"}
-            </span>
+            <span className="app-shell__page-name">{selected?.label || "AI Job Kaki"}</span>
           </div>
-          <div className="flex items-center gap-5">
-            <a
-              className="muted"
-              href="https://github.com/yjrd21/AI_Job_Kaki"
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Help and project source"
-            >
+          <div className="app-shell__header-actions">
+            <a href="https://github.com/yjrd21/AI_Job_Kaki" target="_blank" rel="noreferrer" aria-label="Help and project source">
               <HelpCircle size={19} />
             </a>
-            <span className="rounded-full bg-[#d6ded4] w-9 h-9 grid place-items-center text-forest text-sm font-semibold">
-              {auth.name?.charAt(0) || "K"}
-            </span>
+            <span className="app-shell__header-avatar" aria-hidden="true">{auth.name?.charAt(0) || "K"}</span>
           </div>
         </header>
-        <main className="px-5 py-9 sm:px-9 lg:px-12 lg:py-12 max-w-[1260px] mx-auto">
+        <main id="main-content" className="app-shell__content">
           <Outlet />
         </main>
       </div>
