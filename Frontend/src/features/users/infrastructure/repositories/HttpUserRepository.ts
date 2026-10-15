@@ -11,6 +11,11 @@ export class HttpUserRepository implements UserRepository {
     const r = await httpClient.put<User>(endpoints.user(id), patch);
     return r.data;
   }
+  async completeOnboarding(id: string) {
+    // Backend endpoint is a Phase 3 dependency, not implemented in this frontend PR.
+    const r = await httpClient.post<User>(`${endpoints.user(id)}/onboarding/complete`);
+    return r.data;
+  }
   async delete(id: string) {
     await httpClient.delete(endpoints.user(id));
   }
