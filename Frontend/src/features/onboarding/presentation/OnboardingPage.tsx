@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, CheckCircle2, FileText } from "lucide-react";
-import { useContexts, useSaveContext } from "../../candidate-contexts/presentation/hooks/useContexts";
+import { useSaveContext } from "../../candidate-contexts/presentation/hooks/useContexts";
+import { useOnboardingStatus, useCompleteOnboarding } from "./useOnboardingStatus";
+import { useRef } from "react";
 import { fileToBase64, MAX_CV_BYTES } from "../../../utils/fileUtils";
 import { listFromLines } from "../../../utils/textUtils";
 import { Button } from "../../../components/ui/Button";
@@ -20,7 +22,10 @@ type FormValues = {
 
 export function OnboardingPage() {
   const navigate = useNavigate();
-  const contexts = useContexts();
+  const account = useOnboardingStatus();
+  const complete = useCompleteOnboarding();
+  // Retain successful creation across retries so a failed completion call does not duplicate profiles.
+  const profileCreated = useRef(false);
   const save = useSaveContext();
   const [step, setStep] = useState(0);
   const [finished, setFinished] = useState(false);
@@ -33,9 +38,10 @@ export function OnboardingPage() {
   const update = (key: keyof FormValues, value: string) =>
     setValues((old) => ({ ...old, [key]: value }));
 
-  if (contexts.isPending) return <Loading label="Checking candidate profiles…" />;
-  if (contexts.isError) return <ErrorNotice error={contexts.error} retry={() => void contexts.refetch()} />;
-  if (contexts.data?.length && !finished) return <Navigate to="/dashboard" replace />;
+  if (account.isPending) return <Loading label="Checking onboarding status…" />;
+  if (account.isError) return <ErrorNotice error={account.error} retry={() => void account.refetch()} />;
+  if (typeof account.data?.onboardingCompleted !== "boolean") return <p role="alert">Onboarding status is unavailable. Please try again after the backend has been updated.</p>;
+  if (account.data.onboardingCompleted && !finished) return <Navigate to="/dashboard" replace />;
 
   async function chooseCv(file: File | undefined) {
     setCv(null);
@@ -76,7 +82,11 @@ export function OnboardingPage() {
         redFlags: listFromLines(values.redFlags),
         ...(cv ? { cvFile: cv.content, cvFileName: cv.name } : {}),
       };
-      await save.mutateAsync(payload);
+      if (!profileCreated.current) {
+        await save.mutateAsync(payload);
+        profileCreated.current = true;
+      }
+      await complete.mutateAsync();
       setFinished(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to save your profile. Please try again.");
@@ -141,8 +151,8 @@ export function OnboardingPage() {
               {error && <p role="alert" className="ui-field-error">{error}</p>}
               {save.isError && <ErrorNotice error={save.error}/>}
               <div className="flex justify-between gap-3 mt-8">
-                <Button variant="outline" type="button" disabled={step === 0 || save.isPending || cvLoading} onClick={() => { setError(null); setStep((s) => Math.max(0, s - 1)); }}><ArrowLeft size={16}/> Back</Button>
-                <Button type="button" disabled={save.isPending || cvLoading} onClick={() => void next()}>{save.isPending ? "Saving…" : step === 3 ? "Finish profile" : "Continue"} <ArrowRight size={16}/></Button>
+                <Button variant="outline" type="button" disabled={step === 0 || save.isPending || complete.isPending || cvLoading} onClick={() => { setError(null); setStep((s) => Math.max(0, s - 1)); }}><ArrowLeft size={16}/> Back</Button>
+                <Button type="button" disabled={save.isPending || complete.isPending || cvLoading} onClick={() => void next()}>{save.isPending || complete.isPending ? "Saving…" : step === 3 ? "Finish profile" : "Continue"} <ArrowRight size={16}/></Button>
               </div>
             </div>
           </>
