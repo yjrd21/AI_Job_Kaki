@@ -5,6 +5,7 @@ import { useContexts, useSaveContext } from "../../candidate-contexts/presentati
 import { fileToBase64, MAX_CV_BYTES } from "../../../utils/fileUtils";
 import { listFromLines } from "../../../utils/textUtils";
 import { Button } from "../../../components/ui/Button";
+import { Alert } from "../../../components/ui/Alert";
 import { StepProgress } from "../../../components/ui/StepProgress";
 import { ErrorNotice, Loading } from "../../../components/feedback/Feedback";
 
@@ -26,7 +27,8 @@ export function OnboardingPage() {
   const [values, setValues] = useState<FormValues>({
     roles: "", preferences: "", redFlags: "", arrangement: "", locations: "",
   });
-  const [cv, setCv] = useState<File | null>(null);
+  const [cv, setCv] = useState<{ name: string; content: string } | null>(null);
+  const [cvLoading, setCvLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const update = (key: keyof FormValues, value: string) =>
     setValues((old) => ({ ...old, [key]: value }));
@@ -35,16 +37,32 @@ export function OnboardingPage() {
   if (contexts.isError) return <ErrorNotice error={contexts.error} retry={() => void contexts.refetch()} />;
   if (contexts.data?.length && !finished) return <Navigate to="/dashboard" replace />;
 
+  async function chooseCv(file: File | undefined) {
+    setCv(null);
+    setError(null);
+    if (!file) return;
+    if (file.size > MAX_CV_BYTES || !/\.(pdf|docx)$/i.test(file.name)) {
+      setError("Choose a PDF or DOCX file under 5 MB.");
+      return;
+    }
+    setCvLoading(true);
+    try {
+      const content = await fileToBase64(file);
+      setCv({ name: file.name, content });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to read the CV. Please try again.");
+    } finally {
+      setCvLoading(false);
+    }
+  }
+
   async function next() {
     setError(null);
     if (step === 0 && listFromLines(values.roles).length === 0) {
       setError("Add at least one target role.");
       return;
     }
-    if (step === 1 && cv && (cv.size > MAX_CV_BYTES || !/\.(pdf|docx)$/i.test(cv.name))) {
-      setError("Choose a PDF or DOCX file under 5 MB.");
-      return;
-    }
+    if (cvLoading) return;
     if (step < 3) { setStep(step + 1); return; }
     try {
       const detail = [
@@ -56,7 +74,7 @@ export function OnboardingPage() {
         targetRoles: listFromLines(values.roles),
         preferences: detail,
         redFlags: listFromLines(values.redFlags),
-        ...(cv ? { cvFile: await fileToBase64(cv), cvFileName: cv.name } : {}),
+        ...(cv ? { cvFile: cv.content, cvFileName: cv.name } : {}),
       };
       await save.mutateAsync(payload);
       setFinished(true);
@@ -76,8 +94,7 @@ export function OnboardingPage() {
           <div className="card p-7 sm:p-10" role="status">
             <CheckCircle2 className="text-forest mb-5" size={36} aria-hidden="true" />
             <p className="eyebrow">COMPLETE</p>
-            <h1 className="display-title mb-4">Your profile is ready</h1>
-            <p className="muted mb-6">Your candidate profile has been saved. You can update it any time.</p>
+            <h1 className="display-title mb-6">Your profile is ready</h1>
             <div className="flex flex-wrap gap-3">
               <Button onClick={() => navigate("/dashboard")}>Go to Dashboard <ArrowRight size={17}/></Button>
               <Button variant="outline" onClick={() => navigate("/analyse")}>Analyse your first job</Button>
@@ -99,9 +116,10 @@ export function OnboardingPage() {
                 <h1 className="page-title mb-3">Add your CV</h1>
                 <p className="muted mb-7">Store your CV with this profile. Add relevant experience to your preferences for the current comparison.</p>
                 <label htmlFor="cv" className="field-label">CV (optional)</label>
-                <input id="cv" type="file" className="field" accept=".pdf,.docx" onChange={(e) => { setCv(e.target.files?.[0] ?? null); setError(null); }} />
+                <input id="cv" type="file" className="field" accept=".pdf,.docx" onChange={(e) => { void chooseCv(e.target.files?.[0]); }} />
                 <p className="ui-field-hint"><FileText size={14} className="inline mr-2"/>PDF or DOCX · up to 5 MB</p>
-                {cv && <p className="mt-3 text-sm">{cv.name}</p>}
+                {cvLoading && <p role="status" className="mt-3 text-sm muted">Reading CV…</p>}
+                {cv && <div className="mt-4"><Alert tone="success" title="Upload successful">Your CV has been added to this profile.</Alert><p className="text-sm muted mt-2">{cv.name}</p></div>}
               </>}
               {step === 2 && <>
                 <h1 className="page-title mb-3">Define your target roles</h1>
@@ -123,8 +141,8 @@ export function OnboardingPage() {
               {error && <p role="alert" className="ui-field-error">{error}</p>}
               {save.isError && <ErrorNotice error={save.error}/>}
               <div className="flex justify-between gap-3 mt-8">
-                <Button variant="outline" type="button" disabled={step === 0 || save.isPending} onClick={() => { setError(null); setStep((s) => Math.max(0, s - 1)); }}><ArrowLeft size={16}/> Back</Button>
-                <Button type="button" disabled={save.isPending} onClick={() => void next()}>{save.isPending ? "Saving…" : step === 3 ? "Finish profile" : "Continue"} <ArrowRight size={16}/></Button>
+                <Button variant="outline" type="button" disabled={step === 0 || save.isPending || cvLoading} onClick={() => { setError(null); setStep((s) => Math.max(0, s - 1)); }}><ArrowLeft size={16}/> Back</Button>
+                <Button type="button" disabled={save.isPending || cvLoading} onClick={() => void next()}>{save.isPending ? "Saving…" : step === 3 ? "Finish profile" : "Continue"} <ArrowRight size={16}/></Button>
               </div>
             </div>
           </>
