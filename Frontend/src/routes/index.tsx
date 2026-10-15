@@ -3,6 +3,8 @@ import { AppShell } from "../components/layout/AppShell";
 import { useAuth } from "../features/auth/presentation/AuthProvider";
 import { Loading } from "../components/feedback/Feedback";
 import { LoginPage } from "../features/auth/presentation/pages/LoginPage";
+import { OnboardingGate } from "../features/onboarding/presentation/OnboardingGate";
+import { OnboardingPage } from "../features/onboarding/presentation/OnboardingPage";
 import { DashboardPage } from "../features/jobs/presentation/pages/DashboardPage";
 import { AnalyseJobPage } from "../features/jobs/presentation/pages/AnalyseJobPage";
 import { JobHistoryPage } from "../features/jobs/presentation/pages/JobHistoryPage";
@@ -36,7 +38,10 @@ export const router = createBrowserRouter([
   {
     element: <Guard />,
     children: [
+      { path: "/onboarding", element: <OnboardingPage /> },
       {
+        element: <OnboardingGate />,
+        children: [{
         element: <AppShell />,
         children: [
           { path: "/dashboard", element: <DashboardPage /> },
@@ -48,6 +53,7 @@ export const router = createBrowserRouter([
           { path: "/profiles/:contextId", element: <ProfileEditorPage /> },
           { path: "/account", element: <AccountPage /> },
         ],
+        }],
       },
     ],
   },
