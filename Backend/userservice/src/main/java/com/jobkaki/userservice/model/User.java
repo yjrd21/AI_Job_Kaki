@@ -27,6 +27,8 @@ public class User {
     private String password;
     private String firstName;
     private String lastName;
+    @Column(name = "onboarding_completed", nullable = false)
+    private boolean onboardingCompleted = false;
     @CreationTimestamp
     private LocalDateTime createdAt;
     @UpdateTimestamp

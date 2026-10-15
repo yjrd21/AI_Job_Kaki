@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface CandidateContextRepository extends JpaRepository<CandidateContext, UUID> {
     List<CandidateContext> findByUserId(UUID userId);
 
+    boolean existsByUserId(UUID userId);
+
     Optional<CandidateContext> findByIdAndUserId(
             UUID id,
             UUID userId);

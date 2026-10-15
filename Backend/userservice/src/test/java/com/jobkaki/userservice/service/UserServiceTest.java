@@ -1,6 +1,8 @@
 package com.jobkaki.userservice.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -48,6 +50,7 @@ class UserServiceTest {
         assertEquals(request.email(), response.email());
         assertEquals(request.firstName(), response.firstName());
         assertEquals(request.lastName(), response.lastName());
+        assertFalse(response.onboardingCompleted());
         verify(userRepository).save(any(User.class));
     }
 
@@ -107,6 +110,61 @@ class UserServiceTest {
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
         verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void onboardingCannotCompleteWithoutSavedProfile() {
+        User user = user(UUID.randomUUID().toString(), "new@example.com", "password");
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(contextRepository.existsByUserId(user.getId())).thenReturn(false);
+
+        ResponseStatusException error = assertThrows(ResponseStatusException.class,
+                () -> userService.completeOnboarding(user.getId()));
+
+        assertEquals(HttpStatus.CONFLICT, error.getStatusCode());
+        assertFalse(user.isOnboardingCompleted());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void onboardingCompletesAfterProfileExists() {
+        User user = user(UUID.randomUUID().toString(), "new@example.com", "password");
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(contextRepository.existsByUserId(user.getId())).thenReturn(true);
+        when(userRepository.save(user)).thenReturn(user);
+
+        UserResponse response = userService.completeOnboarding(user.getId());
+
+        assertTrue(response.onboardingCompleted());
+        assertTrue(user.isOnboardingCompleted());
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void onboardingCompletionIsIdempotentEvenAfterDeletingAllProfiles() {
+        User user = user(UUID.randomUUID().toString(), "new@example.com", "password");
+        user.setOnboardingCompleted(true);
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+
+        UserResponse response = userService.completeOnboarding(user.getId());
+
+        assertTrue(response.onboardingCompleted());
+        verify(contextRepository, never()).existsByUserId(any(UUID.class));
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void accountResynchronizationPreservesCompletionStatus() {
+        User user = user(UUID.randomUUID().toString(), "new@example.com", "password");
+        user.setOnboardingCompleted(true);
+        CreateUserRequest request = request(user.getKeycloakId(), "new@example.com");
+        when(userRepository.findByEmail(request.email())).thenReturn(Optional.of(user));
+        when(userRepository.findByKeycloakId(request.keycloakId())).thenReturn(Optional.of(user));
+        when(userRepository.save(user)).thenReturn(user);
+
+        UserResponse response = userService.create(request);
+
+        assertTrue(response.onboardingCompleted());
     }
 
     private static CreateUserRequest request(String keycloakId, String email) {
