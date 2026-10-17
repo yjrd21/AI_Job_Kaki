@@ -344,4 +344,12 @@ pids+=("$!")
 ) &
 pids+=("$!")
 
+# Frontend: Vite dev server.
+(
+    cd "$ROOT/../Frontend" || exit 1
+    [ -d node_modules ] || npm install
+    exec npm run dev
+) &
+pids+=("$!")
+
 wait
