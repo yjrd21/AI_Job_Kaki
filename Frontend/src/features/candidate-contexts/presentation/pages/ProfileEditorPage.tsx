@@ -129,7 +129,7 @@ export function ProfileEditorPage() {
           <div className="card p-6 sm:p-8">
             <p className="eyebrow mb-5">04 — YOUR CV</p>
             <label htmlFor="cv" className="field-label">
-              Upload a CV (optional)
+              Upload a CV (required for job analysis)
             </label>
             <div className="border border-dashed border-[#c9ccc0] bg-[#fcfcfa] rounded-lg px-6 py-8 text-center">
               <FileText className="text-forest mx-auto mb-3" size={27} />
@@ -141,8 +141,8 @@ export function ProfileEditorPage() {
                 className="text-sm max-w-full"
               />
               <p className="text-xs muted mt-3">
-                Maximum 5 MB. Files are stored by the backend but not currently
-                parsed by the AI.
+                PDF, DOC, or DOCX, up to 5 MiB. Your CV is sent to the AI with
+                each job analysis to assess your qualifications.
               </p>
               {query.data?.cvFileName && !file && (
                 <p className="text-sm mt-3">

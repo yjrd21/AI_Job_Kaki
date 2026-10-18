@@ -148,7 +148,7 @@ export function AnalyseJobPage() {
               id="jobContext"
               className="field"
               type="url"
-              placeholder="https://example.com/jobs/your-opportunity"
+              placeholder="https://www.linkedin.com/jobs/view/1234567890/"
               {...form.register("jobContext")}
             />
           )}
@@ -160,9 +160,8 @@ export function AnalyseJobPage() {
           {kind === "URL" && (
             <p className="mt-3 text-xs muted flex gap-2">
               <Info size={15} className="shrink-0" />
-              The current backend passes the URL as text; it does not
-              automatically retrieve the posting. Paste the description for a
-              more informative analysis.
+              We retrieve publicly accessible LinkedIn job postings. If LinkedIn
+              blocks access, paste the full job description instead.
             </p>
           )}
         </section>

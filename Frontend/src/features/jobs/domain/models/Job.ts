@@ -10,6 +10,8 @@ export interface JobSubmission {
   jobContext: string;
   status: JobStatus;
   jobAnalysisId: string | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
   createdAt: string;
   updatedAt: string;
 }

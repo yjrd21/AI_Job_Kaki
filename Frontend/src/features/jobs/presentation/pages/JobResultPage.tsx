@@ -26,6 +26,13 @@ export function JobResultPage() {
     return <ErrorNotice error={job.error} retry={() => void job.refetch()} />;
   if (!job.data) return null;
   const data = job.data;
+  const needsCvUpdate = [
+    "CV_MISSING",
+    "CV_TOO_LARGE",
+    "CV_FORMAT_UNSUPPORTED",
+    "CV_FILE_INVALID",
+    "CV_CONTENT_UNAVAILABLE",
+  ].includes(data.errorCode || "");
   return (
     <div className="max-w-5xl">
       <Link
@@ -60,15 +67,21 @@ export function JobResultPage() {
                 We couldn't complete this analysis.
               </h2>
               <p className="muted text-sm mb-6">
-                The backend reported a failure without a public error
-                explanation. You can start another submission with your original
-                job text.
+                {data.errorMessage ||
+                  "We couldn't complete this analysis. Please paste the full job description and try again."}
               </p>
               <Link
                 className="btn btn-primary"
-                to={`/analyse?type=${data.submissionType}&context=${encodeURIComponent(data.candidateContextId)}&jobContext=${encodeURIComponent(data.jobContext)}`}
+                to={
+                  needsCvUpdate
+                    ? `/profiles/${encodeURIComponent(data.candidateContextId)}`
+                    : `/analyse?type=TEXT&context=${encodeURIComponent(data.candidateContextId)}${data.submissionType === "TEXT" ? `&jobContext=${encodeURIComponent(data.jobContext)}` : ""}`
+                }
               >
-                Try a new submission <ArrowRight size={16} />
+                {needsCvUpdate
+                  ? "Update candidate profile"
+                  : "Paste job description"}{" "}
+                <ArrowRight size={16} />
               </Link>
             </>
           ) : (

@@ -3,11 +3,13 @@ import type {
   AnalysisRepository,
 } from "../../domain/contracts/JobRepository";
 import type { JobSubmissionInput } from "../../domain/models/Job";
+
 export const submitJob = (
   repo: JobRepository,
   userId: string,
   input: JobSubmissionInput,
 ) => repo.submit(userId, input);
+
 export const listJobs = (repo: JobRepository, userId: string) =>
   repo.list(userId);
 export const getJob = (repo: JobRepository, userId: string, jobId: string) =>
