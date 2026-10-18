@@ -6,7 +6,6 @@ import com.jobkaki.jobservice.service.JobService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,9 +18,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/users/{userId}/jobs")
-@RequiredArgsConstructor
 public class JobController {
     private final JobService service;
+
+    public JobController(JobService service) {
+        this.service = service;
+    }
 
     // Submit a job for analysis using the candidate context associated with the user.
     @PostMapping

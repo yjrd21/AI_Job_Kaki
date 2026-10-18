@@ -7,20 +7,25 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class UserService {
     private static final int MAX_CV_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
     private final UserRepository userRepository;
     private final CandidateContextRepository contextRepository;
+
+    public UserService(
+            UserRepository userRepository,
+            CandidateContextRepository contextRepository) {
+        this.userRepository = userRepository;
+        this.contextRepository = contextRepository;
+    }
 
     // Create or synchronize a user account using its email and Keycloak ID.
     public UserResponse create(CreateUserRequest request) {

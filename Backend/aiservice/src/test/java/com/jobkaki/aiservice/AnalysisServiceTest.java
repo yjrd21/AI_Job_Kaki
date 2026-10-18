@@ -71,7 +71,7 @@ class AnalysisServiceTest {
         assertEquals(RequirementMatchStatus.UNKNOWN, saved.getValue().getRequirements().get(0).getStatus());
         assertNull(saved.getValue().getSalaryRange());
         assertNull(saved.getValue().getApplicationDeadline());
-        assertEquals(List.of(JobStatus.PROCESSING, JobStatus.COMPLETED), events().stream().map(JobStatusEvent::status).toList());
+        assertEquals(List.of(JobStatus.PROCESSING, JobStatus.COMPLETED), events().stream().map(event -> java.util.Objects.requireNonNull(event).status()).toList());
     }
 
     @Test

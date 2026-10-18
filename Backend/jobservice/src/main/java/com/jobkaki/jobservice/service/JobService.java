@@ -18,7 +18,6 @@ import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.support.converter.MessageConversionException;
 import org.springframework.web.client.RestClientException;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -31,7 +30,6 @@ import org.springframework.web.server.ResponseStatusException;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class JobService {
         private static final int MAX_CV_BYTES = 5 * 1024 * 1024;
@@ -40,6 +38,17 @@ public class JobService {
         private final CandidateContextProvider candidateContextProvider;
         private final RabbitTemplate rabbit;
         private final MongoTemplate mongo;
+
+        public JobService(
+                JobSubmissionRepository repository,
+                CandidateContextProvider candidateContextProvider,
+                RabbitTemplate rabbit,
+                MongoTemplate mongo) {
+            this.repository = repository;
+            this.candidateContextProvider = candidateContextProvider;
+            this.rabbit = rabbit;
+            this.mongo = mongo;
+        }
 
         @Value("${rabbitmq.exchange.name}")
         private String exchangeName;

@@ -11,7 +11,6 @@ import com.jobkaki.aiservice.repository.JobAnalysisRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -22,7 +21,6 @@ import org.springframework.web.server.ResponseStatusException;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class AnalysisService {
     private final JobAnalysisRepository repository;
@@ -31,6 +29,21 @@ public class AnalysisService {
     private final JobContentResolver contentResolver;
     private final AnalysisResultValidator resultValidator;
     private final MongoTemplate mongo;
+
+    public AnalysisService(
+            JobAnalysisRepository repository,
+            OpenAIService openAI,
+            RabbitTemplate rabbit,
+            JobContentResolver contentResolver,
+            AnalysisResultValidator resultValidator,
+            MongoTemplate mongo) {
+        this.repository = repository;
+        this.openAI = openAI;
+        this.rabbit = rabbit;
+        this.contentResolver = contentResolver;
+        this.resultValidator = resultValidator;
+        this.mongo = mongo;
+    }
 
     @Value("${rabbitmq.exchange.name}")
     private String exchangeName;

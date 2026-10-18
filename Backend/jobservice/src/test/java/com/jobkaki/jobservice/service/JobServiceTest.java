@@ -6,7 +6,6 @@ import com.jobkaki.jobservice.model.JobSubmission;
 import com.jobkaki.jobservice.model.JobSubmissionType;
 import com.jobkaki.jobservice.repository.JobSubmissionRepository;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;

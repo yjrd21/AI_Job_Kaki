@@ -4,7 +4,6 @@ import com.jobkaki.gateway.dto.RegisterRequest;
 import com.jobkaki.gateway.user.UserService;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -21,9 +20,12 @@ import java.util.regex.Pattern;
 
 @Component
 @Slf4j
-@RequiredArgsConstructor
 public class KeyCloakUserSyncFilter implements WebFilter {
     private final UserService userService;
+
+    public KeyCloakUserSyncFilter(UserService userService) {
+        this.userService = userService;
+    }
 
     // Matches /api/users/{id} or /api/users/{id}/..., capturing {id} in group 1
     private static final Pattern USER_PATH = Pattern.compile("^/api/users/([^/]+)(/.*)?$");

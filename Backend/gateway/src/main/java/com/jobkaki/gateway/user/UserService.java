@@ -1,6 +1,5 @@
 package com.jobkaki.gateway.user;
 import com.jobkaki.gateway.dto.RegisterRequest;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -11,9 +10,12 @@ import reactor.core.publisher.Mono;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class UserService {
     private final WebClient UserServiceWebClient;
+
+    public UserService(WebClient UserServiceWebClient) {
+        this.UserServiceWebClient = UserServiceWebClient;
+    }
 
     public Mono<Boolean> validateKeyCloakUser(String keycloakId) {
         log.info("Calling User Validation API for keycloakId: {}", keycloakId);
