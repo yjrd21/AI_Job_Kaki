@@ -1,6 +1,7 @@
 package com.jobkaki.aiservice.dto;
 
 import java.util.List;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 // Represents the job and candidate data received from Job Service for analysis.
@@ -16,8 +17,12 @@ public record JobAnalysisRequest(
             UUID id,
             UUID userId,
             String cvFileName,
+            String cvContentType,
+            byte[] cvFile,
             List<String> targetRoles,
             List<String> preferences,
-            List<String> redFlags) {
+            List<String> redFlags,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt) {
     }
 }

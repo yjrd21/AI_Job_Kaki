@@ -15,5 +15,7 @@ public record JobSubmissionResponse(
         JobStatus status,
         UUID jobAnalysisId,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt) {
+        LocalDateTime updatedAt,
+        String errorCode,
+        String errorMessage) {
 }

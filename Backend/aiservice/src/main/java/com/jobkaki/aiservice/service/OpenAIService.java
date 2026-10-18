@@ -1,9 +1,12 @@
 package com.jobkaki.aiservice.service;
 
 import com.jobkaki.aiservice.dto.JobAnalysisResult;
+import com.jobkaki.aiservice.dto.JobAnalysisRequest.CandidateContext;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import java.time.Duration;
 import java.util.List;
+import java.util.Base64;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +29,7 @@ public class OpenAIService {
         @Value("${openai.model}") String model,
         ObjectMapper objectMapper
     ) {
-        this.webClient = webClientBuilder
+        this.webClient = webClientBuilder.clone()
                 .baseUrl(baseUrl)
                 .defaultHeader("Authorization", "Bearer " + apiKey)
                 .build();
@@ -35,38 +38,63 @@ public class OpenAIService {
     }
 
     // Request and deserialize an analysis that conforms to the declared JSON schema.
-    public JobAnalysisResult getAnalysis(String prompt) {
+    public JobAnalysisResult getAnalysis(String prompt, CandidateContext candidate) {
         if (prompt == null || prompt.isBlank()) {
             throw new RuntimeException("Prompt cannot be null or empty");
         }
 
+        validateCv(candidate);
+        var content = List.of(
+                Map.of("type", "input_file", "filename", candidate.cvFileName(),
+                        "file_data", "data:" + candidate.cvContentType() + ";base64,"
+                                + Base64.getEncoder().encodeToString(candidate.cvFile())),
+                Map.of("type", "input_text", "text", prompt));
         JsonNode response = webClient.post()
                 .uri("/responses")
                 .bodyValue(Map.of(
                         "model", model,
-                        "input", prompt,
+                        "input", List.of(Map.of("role", "user", "content", content)),
                         "text", Map.of("format", structuredOutputFormat())))
                 .retrieve()
-                .onStatus(
-                        status -> status.isError(),
-                        clientResponse -> clientResponse.bodyToMono(String.class)
-                                .defaultIfEmpty("No error body returned")
-                                .flatMap(errorBody -> Mono.error(
-                                        new IllegalStateException(
-                                                "OpenAI request failed with status "
-                                                        + clientResponse.statusCode()
-                                                        + ": " + errorBody))))
+                .onStatus(status -> status.isError(), clientResponse -> {
+                    log.warn("OpenAI request failed with status {}", clientResponse.statusCode());
+                    return clientResponse.releaseBody().then(Mono.error(new AnalysisException(
+                            "AI_SERVICE_UNAVAILABLE", "The AI service is temporarily unavailable. Please try again later.")));
+                })
                 .bodyToMono(JsonNode.class)
-                .block();
+                .block(Duration.ofSeconds(90));
 
+        if (response == null || !"completed".equals(response.path("status").asString())) {
+            throw new AnalysisException("AI_RESPONSE_INCOMPLETE", "The AI service did not complete this evaluation. Please try again.");
+        }
         String answer = extractOutputText(response);
 
         if (answer == null || answer.isBlank()) {
             log.error("OpenAI response did not contain an output_text content item");
-            throw new RuntimeException("OpenAI response did not contain an output_text content item");
+            throw new AnalysisException("AI_RESULT_INVALID", "The AI service returned no usable evaluation. Please try again.");
         }
 
-        return objectMapper.readValue(answer, JobAnalysisResult.class);
+        try {
+            return objectMapper.readValue(answer, JobAnalysisResult.class);
+        } catch (RuntimeException exception) {
+            throw new AnalysisException("AI_RESULT_INVALID", "The AI service returned an invalid evaluation. Please try again.");
+        }
+    }
+
+    private void validateCv(CandidateContext candidate) {
+        if (candidate == null || candidate.cvFile() == null || candidate.cvFile().length == 0) {
+            throw new AnalysisException("CV_MISSING", "Upload a CV to your candidate profile and submit the job again.");
+        }
+        if (candidate.cvFile().length > 5 * 1024 * 1024) {
+            throw new AnalysisException("CV_TOO_LARGE", "Your CV must not exceed 5 MiB. Upload a smaller file.");
+        }
+        String name = candidate.cvFileName() == null ? "" : candidate.cvFileName().toLowerCase(java.util.Locale.ROOT);
+        boolean supported = (name.endsWith(".pdf") && "application/pdf".equals(candidate.cvContentType()))
+                || (name.endsWith(".doc") && "application/msword".equals(candidate.cvContentType()))
+                || (name.endsWith(".docx") && "application/vnd.openxmlformats-officedocument.wordprocessingml.document".equals(candidate.cvContentType()));
+        if (!supported) {
+            throw new AnalysisException("CV_FORMAT_UNSUPPORTED", "Upload your CV as a PDF, DOC, or DOCX file.");
+        }
     }
 
     private Map<String, Object> structuredOutputFormat() {
@@ -88,6 +116,8 @@ public class OpenAIService {
                 "schema", Map.of(
                         "type", "object",
                         "properties", Map.of(
+                                "jobInformationSufficient", Map.of("type", "boolean"),
+                                "candidateInformationSufficient", Map.of("type", "boolean"),
                                 "companyContext", nullableStringSchema(),
                                 "roleTitle", nullableStringSchema(),
                                 "applicationDeadline", nullableStringSchema(),
@@ -103,6 +133,8 @@ public class OpenAIService {
                                         "type", "array",
                                         "items", Map.of("type", "string"))),
                         "required", List.of(
+                                "jobInformationSufficient",
+                                "candidateInformationSufficient",
                                 "companyContext",
                                 "roleTitle",
                                 "applicationDeadline",

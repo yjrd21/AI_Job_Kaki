@@ -5,6 +5,8 @@ import java.util.List;
 
 // Structured analysis returned by the language model before persistence.
 public record JobAnalysisResult(
+        boolean jobInformationSufficient,
+        boolean candidateInformationSufficient,
         String companyContext,
         String roleTitle,
         String applicationDeadline,

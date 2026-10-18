@@ -167,6 +167,38 @@ class UserServiceTest {
         assertTrue(response.onboardingCompleted());
     }
 
+    @Test
+    void internalContextIncludesCvButPublicContextDoesNot() {
+        UUID userId = UUID.randomUUID();
+        var context = new com.jobkaki.userservice.model.CandidateContext();
+        context.setId(UUID.randomUUID());
+        context.setUserId(userId);
+        context.setCvFileName("CV.PDF");
+        byte[] file = "%PDF-test CV".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        context.setCvFile(file);
+        context.setTargetRoles(java.util.List.of("Engineer"));
+        when(contextRepository.findByIdAndUserId(context.getId(), userId)).thenReturn(Optional.of(context));
+        var internal = userService.analysisContext(userId, context.getId());
+        org.junit.jupiter.api.Assertions.assertArrayEquals(file, internal.cvFile());
+        assertEquals("application/pdf", internal.cvContentType());
+        assertEquals(context.getTargetRoles(), internal.targetRoles());
+        var mapper = new tools.jackson.databind.ObjectMapper();
+        var publicJson = mapper.readTree(mapper.writeValueAsBytes(userService.context(userId, context.getId())));
+        assertFalse(publicJson.has("cvFile"));
+        assertTrue(publicJson.has("cvFileName"));
+        var controller = new com.jobkaki.userservice.controller.InternalUserController(userService);
+        assertEquals("no-store", controller.analysisContext(userId, context.getId()).getHeaders().getCacheControl());
+    }
+
+    @Test
+    void internalContextCannotFetchAnotherUsersProfile() {
+        UUID userId = UUID.randomUUID();
+        UUID contextId = UUID.randomUUID();
+        when(contextRepository.findByIdAndUserId(contextId, userId)).thenReturn(Optional.empty());
+        var error = assertThrows(ResponseStatusException.class, () -> userService.analysisContext(userId, contextId));
+        assertEquals(HttpStatus.NOT_FOUND, error.getStatusCode());
+    }
+
     private static CreateUserRequest request(String keycloakId, String email) {
         return new CreateUserRequest(email, "dummy-password", keycloakId, "First", "Last");
     }

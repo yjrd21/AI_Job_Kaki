@@ -8,5 +8,6 @@ public record JobStatusEvent(
         UUID jobSubmissionId,
         UUID jobAnalysisId,
         JobStatus status,
-        String errorMessage) {
+        String errorMessage,
+        String errorCode) {
 }

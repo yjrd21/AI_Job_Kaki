@@ -21,6 +21,8 @@ public class JobSubmission {
     private String jobContext;
     private JobStatus status;
     private UUID jobAnalysisId;
+    private String errorCode;
+    private String errorMessage;
 
     @CreatedDate
     private LocalDateTime createdAt;

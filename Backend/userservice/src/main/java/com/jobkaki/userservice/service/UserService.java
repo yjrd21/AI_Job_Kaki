@@ -5,6 +5,7 @@ import com.jobkaki.userservice.model.*;
 import com.jobkaki.userservice.repository.*;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -203,6 +204,19 @@ public class UserService {
 
         // Return the candidate context response
         return contextResponse(context);
+    }
+
+    // Return the selected profile and original CV in one lookup, avoiding profile/file version races.
+    public CandidateAnalysisContextResponse analysisContext(UUID userId, UUID contextId) {
+        CandidateContext context = contextRepository.findByIdAndUserId(contextId, userId)
+                .orElseThrow(() -> notFound("Candidate context", contextId));
+        String name = context.getCvFileName() == null ? "" : context.getCvFileName().toLowerCase(Locale.ROOT);
+        String type = name.endsWith(".pdf") ? "application/pdf"
+                : name.endsWith(".docx") ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                : name.endsWith(".doc") ? "application/msword" : "application/octet-stream";
+        return new CandidateAnalysisContextResponse(context.getId(), context.getUserId(), context.getCvFileName(),
+                type, context.getCvFile(), context.getTargetRoles(), context.getPreferences(), context.getRedFlags(),
+                context.getCreatedAt(), context.getUpdatedAt());
     }
 
     // Update an existing candidate context
