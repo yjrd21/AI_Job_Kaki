@@ -12,9 +12,9 @@ JobKaki helps candidates compare a job opportunity with their CV, target roles, 
 
 ## Personal Motivation
 
-- Expand beyond iOS into Java, Spring Boot, and React.
-- Demonstrate system design in a public project.
-- Share engineering work openly, since most of my professional projects are covered by NDAs.
+- Broaden my development experience beyond iOS through Java, Spring Boot, and React.
+- Apply system design concepts in a practical, public project.
+- Showcase my engineering work, as most of my professional projects are covered by NDAs.
 
 ## Project Context
 
