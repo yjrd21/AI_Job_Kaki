@@ -19,37 +19,9 @@ Concrete repositories are wired in [`src/app/dependencies.ts`](src/app/dependenc
 
 ## Job Submission Flow
 
-```mermaid
----
-config:
-  theme: base
----
-sequenceDiagram
-    participant UI as Frontend Pages
-    participant Q as Query Hooks
-    participant API as API Gateway
+![JobKaki frontend job submission sequence diagram](docs/images/job-submission-sequence.png)
 
-    UI->>Q: useSubmitJob with job input and profile ID
-    Q->>API: POST job submission
-    API-->>Q: Submission ID and status
-    Q-->>UI: Return submission ID and status
-    UI->>UI: Navigate to /jobs/{jobId}
-
-    loop Every 2.5 seconds while PENDING or PROCESSING
-        Q->>API: useJob requests submission status
-        API-->>Q: Current status and outcome
-        Q-->>UI: Update displayed status
-    end
-
-    alt Status [COMPLETED]
-        UI->>Q: Enable useAnalysis with jobAnalysisId
-        Q->>API: GET saved analysis
-        API-->>Q: Evaluation report
-        Q-->>UI: Display report
-    else Status [FAILED]
-        Q-->>UI: Display error message and corrective action
-    end
-```
+[View and edit the sequence diagram in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=331-170)
 
 - **Happy flow:** Requests follow hooks → application use cases → HTTP repositories → shared Axios client. While the results page is open, `useJob` polls until `COMPLETED`, then `useAnalysis` fetches the report through the API using the analysis ID.
 - **Failure flow:** `FAILED` stops polling and displays the error. LinkedIn retrieval failures prompt pasting the description; CV failures prompt a profile update.
