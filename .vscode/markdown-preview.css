@@ -1,0 +1,78 @@
+/* Light styling for this workspace's Markdown previews, independent of the editor theme. */
+html,
+body {
+  color-scheme: light;
+  color: #24292f;
+  background-color: #ffffff;
+}
+
+body {
+  --vscode-editor-background: #ffffff;
+  --vscode-editor-foreground: #24292f;
+  --vscode-textLink-foreground: #0969da;
+  --vscode-textLink-activeForeground: #0550ae;
+  --vscode-textCodeBlock-background: #f6f8fa;
+  --vscode-textPreformat-foreground: #24292f;
+  --vscode-textPreformat-background: #eff1f3;
+  --vscode-textBlockQuote-background: #f6f8fa;
+  --vscode-textBlockQuote-border: #d0d7de;
+  --vscode-widget-border: #d0d7de;
+}
+
+body a {
+  color: #0969da;
+}
+
+body h1,
+body h2,
+body hr,
+body th,
+body td {
+  border-color: #d0d7de !important;
+}
+
+body th,
+body pre {
+  background-color: #f6f8fa;
+}
+
+body code {
+  color: #24292f;
+  background-color: #eff1f3;
+}
+
+body pre code {
+  background-color: transparent;
+}
+
+body blockquote {
+  color: #57606a;
+  background-color: #f6f8fa;
+  border-left-color: #d0d7de;
+}
+
+/* Keep syntax-highlighted code readable when VS Code supplies a dark token palette. */
+body .hljs {
+  color: #24292f;
+}
+
+body .hljs-comment,
+body .hljs-quote {
+  color: #57606a !important;
+}
+
+body .hljs-keyword,
+body .hljs-literal {
+  color: #cf222e !important;
+}
+
+body .hljs-string,
+body .hljs-regexp {
+  color: #0a3069 !important;
+}
+
+body .hljs-number,
+body .hljs-attr,
+body .hljs-built_in {
+  color: #0550ae !important;
+}

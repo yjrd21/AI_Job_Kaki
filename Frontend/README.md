@@ -1,20 +1,99 @@
-# AI Job Kaki — Frontend
+# JobKaki Frontend
 
-React 18 + TypeScript + Vite single-page application, designed from the current **Java System Architecture** Figma file and API DTOs from [`yjrd21/AI_Job_Kaki`](https://github.com/yjrd21/AI_Job_Kaki) (checked 9 October 2026).
+## LLD Architecture
 
-## Quick start
+> **Figma link coming soon.** Frontend low-level design covering feature layers and component interactions.
 
-1. Extract/copy **the contents** of this folder into your new `jobKaki-frontend` repository.
-2. Install Node.js 20+.
-3. Run `npm install`.
-4. Create `.env.local` with `VITE_API_BASE_URL`, `VITE_KEYCLOAK_URL`, `VITE_KEYCLOAK_REALM` and `VITE_KEYCLOAK_CLIENT_ID` (see "Connect your Java backend" below).
-5. Run `npm run dev`; open the local URL Vite prints.
+<!-- Replace this placeholder with the frontend LLD Figma link. -->
 
-Run `npm run typecheck`, `npm run build`, and `npm test` after dependencies have installed.
+Features such as jobs, candidate profiles, and users separate responsibilities into four layers:
 
-## Connect your Java backend
+| Layer          | Responsibility                                    |
+| -------------- | ------------------------------------------------- |
+| Presentation   | Pages, forms, query hooks, and UI state           |
+| Application    | Use cases that call repository contracts          |
+| Domain         | Business models and repository interfaces         |
+| Infrastructure | HTTP repositories, API DTOs, and response mapping |
 
-Set the following in `.env`:
+Concrete repositories are wired in [`src/app/dependencies.ts`](src/app/dependencies.ts). Authentication and onboarding use a smaller presentation-focused structure.
+
+## Job Submission Flow
+
+```mermaid
+---
+config:
+  theme: base
+---
+sequenceDiagram
+    participant UI as Frontend Pages
+    participant Q as Query Hooks
+    participant API as API Gateway
+
+    UI->>Q: useSubmitJob with job input and profile ID
+    Q->>API: POST job submission
+    API-->>Q: Submission ID and status
+    Q-->>UI: Return submission ID and status
+    UI->>UI: Navigate to /jobs/{jobId}
+
+    loop Every 2.5 seconds while PENDING or PROCESSING
+        Q->>API: useJob requests submission status
+        API-->>Q: Current status and outcome
+        Q-->>UI: Update displayed status
+    end
+
+    alt Status [COMPLETED]
+        UI->>Q: Enable useAnalysis with jobAnalysisId
+        Q->>API: GET saved analysis
+        API-->>Q: Evaluation report
+        Q-->>UI: Display report
+    else Status [FAILED]
+        Q-->>UI: Display error message and corrective action
+    end
+```
+
+- **Happy flow:** Requests follow hooks → application use cases → HTTP repositories → shared Axios client. While the results page is open, `useJob` polls until `COMPLETED`, then `useAnalysis` fetches the report through the API using the analysis ID.
+- **Failure flow:** `FAILED` stops polling and displays the error. LinkedIn retrieval failures prompt pasting the description; CV failures prompt a profile update.
+
+## Authentication
+
+- [`AuthProvider`](src/features/auth/presentation/AuthProvider.tsx) checks for an existing Keycloak session when the application loads.
+- Login uses Authorization Code with PKCE S256 and returns to `/dashboard`.
+- The token's `sub` identifies the signed-in user.
+- The shared Axios client obtains an access token before each request, refreshing it if it expires within 30 seconds, and sends it as a bearer token.
+- Logout ends the Keycloak session and returns to the application's root URL.
+
+## Routing
+
+Routes are defined in [`src/routes/index.tsx`](src/routes/index.tsx) using React Router.
+
+| Route                  | Page                                  |
+| ---------------------- | ------------------------------------- |
+| `/login`               | Sign in                               |
+| `/onboarding`          | Initial account and candidate setup   |
+| `/dashboard`           | Overview and recent analyses          |
+| `/analyse`             | Submit a job                          |
+| `/jobs/:jobId`         | Submission status and analysis report |
+| `/history`             | Job submission history                |
+| `/profiles`            | Candidate profiles                    |
+| `/profiles/new`        | Create a candidate profile            |
+| `/profiles/:contextId` | Edit a candidate profile              |
+| `/account`             | Account details                       |
+
+- `Guard` waits for authentication and redirects signed-out users to `/login`.
+- `OnboardingGate` checks the account's saved `onboardingCompleted` flag before showing the main application.
+- `/onboarding` requires authentication but sits outside `OnboardingGate`.
+- Unknown routes redirect to `/dashboard`, where the same access checks apply.
+
+## Setup and Running Locally
+
+The steps below describe how I run the frontend locally.
+
+### Prerequisites
+
+- Node.js and npm.
+- A public Keycloak client configured for Authorization Code with PKCE S256, redirects to `http://localhost:5173/*`, and Web Origins of `http://localhost:5173`.
+
+Create `.env` with values matching the backend and Keycloak configuration:
 
 ```dotenv
 VITE_API_BASE_URL=http://localhost:8080
@@ -23,61 +102,14 @@ VITE_KEYCLOAK_REALM=jobkaki-oauth2
 VITE_KEYCLOAK_CLIENT_ID=oauth2-pkce-client
 ```
 
-Adjust hostnames, ports, realm and client ID to match your running environment. Register your Vite origin as a Keycloak **Web Origin**, configure a public browser client with **Authorization Code + PKCE (S256)** and appropriate redirect URIs. Do not place a Keycloak client secret in frontend environment files.
+This file is excluded from Git. `VITE_*` values are exposed to the browser, so they must not contain secrets.
 
-**Identity:** the SQL `User.id` is set equal to the Keycloak `sub` (a UUID) when the gateway first syncs the user, so the frontend uses the token's `sub` as `{userId}` in every path. The gateway rejects (403) any `/api/users/{id}/...` request whose id differs from the token subject, and overwrites any client-sent `X-User-ID` header. Users created before this change have random IDs and must be deleted/migrated.
+From the repository root:
 
-The gateway currently parses JWT claims independently in a filter; verify Spring Security authentication and inbound header sanitization before exposing user data publicly.
+```sh
+cd Frontend
+npm ci
+npm run dev
+```
 
-## Screen and API mapping
-
-| Screen                   | Backend endpoint                                                    |
-| ------------------------ | ------------------------------------------------------------------- |
-| Candidate Profiles       | `GET/POST /api/users/{userId}/candidate-contexts`                   |
-| Candidate Profile editor | `GET/PUT/DELETE /api/users/{userId}/candidate-contexts/{contextId}` |
-| Analyse Job              | `POST /api/users/{userId}/jobs`                                     |
-| Job History              | `GET /api/users/{userId}/jobs`                                      |
-| Job Details / lifecycle  | `GET/DELETE /api/users/{userId}/jobs/{jobId}`                       |
-| Completed report         | `GET /api/job-analyses/{analysisId}`                                |
-| Account                  | `GET/PUT /api/users/{userId}`                                       |
-
-The backend accepts `submissionType` = `TEXT` or `URL`; job submissions include `jobContext`, `candidateContextId`, and all nine response fields. The analysis response contains `roleTitle`, `companyContext`, `salaryRange`, `applicationDeadline`, `redFlags[]`, `requirements[]` (requirement, status, explanation), `matchSummary`, and `questionsToClarify[]`. No numeric fit score is invented.
-
-**Known API limitations:** the backend does not retrieve posting pages from URLs, does not feed CV binary contents to the AI prompt, has no CV download endpoint, and does not return a public per-job failure message. Deleting a job submission does not automatically delete the saved analysis. The AI analysis GET route currently requires a backend ownership/security review. Account edits might be overwritten by Keycloak synchronization.
-
-## Architecture
-
-- `src/app/` — application composition, providers, configuration.
-- `src/routes/` — routing and authenticated-route guard.
-- `src/features/` — `auth`, `users`, `candidate-contexts`, and `jobs` (includes analysis).
-- `src/features/*/presentation/` — pages and hooks.
-- `src/features/*/application/` — use cases and orchestration.
-- `src/features/*/domain/` — business models and repository contracts.
-- `src/features/*/infrastructure/` — HTTP repositories and DTO mappings.
-- `src/components/` — shared presentational UI and shell.
-- `src/networks/` — generic Axios client, URL definitions, API errors.
-- `src/utils/` — pure helpers.
-- `tests/` — shared test setup and MSW test handlers.
-
-Dependencies are selected in `src/app/dependencies.ts`; the contracts are implemented by HTTP repositories. Features should not import other features' private infrastructure. Domain contracts never import the HTTP client.
-
-## Libraries
-
-React, TypeScript, Vite, Tailwind CSS, React Router, TanStack Query, Axios, keycloak-js, React Hook Form, Zod, Lucide React, Vitest, React Testing Library and MSW.
-
-The current UI uses small local reusable components styled with Tailwind/CSS that follow the Figma palette; `components.json` is configured for **optional** shadcn/ui component additions. This scaffold does **not** claim to include the entire shadcn/ui component library.
-
-## Before production release
-
-Resolve server-side identity mapping and ownership authorization, audit public endpoints, verify authentication across reload/refresh, implement suitable request-error reporting, test API responses against real Java services, add E2E tests, and configure build-time environment values in your deployment. Do not treat local developer identity settings as production solutions.
-
-## Source design
-
-Figma: https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture
-
-All UI code is original React implementation inspired by the Figma structure and tokens; static Figma boards are not embedded as images.
-
-## Formatting & secrets
-
-- Prettier formats on save (install the recommended VS Code extension). Manual: `npm run format` / `npm run format:check`.
-- After cloning, run `git config core.hooksPath .githooks` once. The pre-commit hook formats staged Frontend files, blocks `.env*` files, and runs `gitleaks` if installed.
+Open the URL printed by Vite, normally `http://localhost:5173`. Restart Vite after changing environment values.
