@@ -6,7 +6,6 @@
 
 [View the LLD in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=339-170)
 
-The diagram summarises the shared request and response flow for jobs, accounts and candidate profiles, with authentication as a supporting flow.
 
 ## Layers and responsibilities
 
@@ -19,9 +18,6 @@ The frontend uses application-wide Clean Architecture, organised by layer rather
 | Interface adapters | `src/adapters` | Validate input through controllers, format output through presenters, implement repositories and authentication clients, and connect React views through hooks and containers. |
 | Frameworks and drivers | `src/infrastructure` | Configure Axios transport, Keycloak SDK, React Query, environment values and provider assembly. |
 
-Domain and application code remain independent of React, Axios and Keycloak. Outer implementations depend on application contracts; ESLint enforces the dependency boundaries.
-
-[`src/app/dependencies.ts`](src/app/dependencies.ts) constructs concrete dependencies and injects them into controllers and use cases through [`createApplication.ts`](src/app/createApplication.ts).
 
 ## Example flow: Job Submission
 
@@ -29,12 +25,6 @@ Domain and application code remain independent of React, Axios and Keycloak. Out
 
 [View the sequence in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=331-170)
 
-1. The user supplies job text or a LinkedIn URL and selects a candidate profile.
-2. The React hook forwards the input to `JobController`, which validates it and invokes the application use case.
-3. The use case calls `JobRepositoryContract`. Its `HttpJobRepository` implementation sends the request through the authenticated Axios transport.
-4. The use case passes the response to `JobPresenter`, which prepares display data returned through the controller to React Query.
-5. On the results page, `useJob` polls while the status is `PENDING` or `PROCESSING`. When `COMPLETED`, `useAnalysis` retrieves the report using its analysis ID.
-6. A `FAILED` submission stops polling and displays recovery guidance. Request failures remain React Query errors; CV issues prompt a profile update, while job-source issues prompt pasted job text.
 
 ## Routing
 
