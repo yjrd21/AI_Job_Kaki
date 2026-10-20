@@ -2,81 +2,19 @@
 
 ## LLD Architecture
 
-> **Figma link coming soon.** Backend low-level design covering service layers and component interactions.
+![JobKaki backend low-level design](docs/images/backend-lld.png)
 
-<!-- Replace this placeholder with the backend LLD Figma link. -->
+[View and edit the backend LLD in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=348-170)
+
+The LLD reflects the current controller/service/repository implementation. It shows each service's owned data, the candidate/CV snapshot call, RabbitMQ listeners and events, and the AI resolution, evaluation, and validation components.
 
 ## Job Analysis Processing
 
-```mermaid
----
-config:
-  theme: base
-  themeCSS: |
-    rect.actor[name="JS"], rect.actor[name="US"], rect.actor[name="AS"] {
-      fill: #dbeafe !important;
-      stroke: #2563eb !important;
-    }
-    rect.actor[name="MQ"] {
-      fill: #fef3c7 !important;
-      stroke: #d97706 !important;
-    }
-    rect.actor[name="JDB"], rect.actor[name="PG"], rect.actor[name="ADB"] {
-      fill: #dcfce7 !important;
-      stroke: #16a34a !important;
-    }
----
-sequenceDiagram
-    participant UI as Frontend via Gateway
-    participant JS as Job Service
-    participant JDB as Job MongoDB
-    participant US as User Service
-    participant PG as PostgreSQL
-    participant MQ as RabbitMQ
-    participant AS as AI Service
-    participant ADB as AI MongoDB
+![JobKaki backend job analysis sequence](docs/images/job-analysis-sequence.png)
 
-    UI->>JS: Submit job and candidate profile ID
-    JS->>JDB: Save Status [PENDING]
-    JS->>US: Retrieve profile and CV
-    US->>PG: Read candidate profile and CV
-    PG-->>US: Candidate data
-    US-->>JS: Candidate snapshot or retrieval error
+[View and edit the sequence diagram in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=347-170)
 
-    alt Preparation fails
-        JS->>JDB: Save Status [FAILED] and error details
-        JS-->>UI: Return Status [FAILED] and error details
-    else Preparation succeeds
-        JS->>MQ: Publish analysis request
-        JS-->>UI: Return submission ID and Status [PENDING]
-
-        MQ-->>AS: Deliver analysis request
-        AS->>MQ: Publish Status [PROCESSING]
-        MQ-->>JS: Consume Status [PROCESSING]
-        JS->>JDB: Save Status [PROCESSING]
-        AS->>AS: Resolve job content and evaluate with OpenAI
-
-        alt Evaluation succeeds and passes validation
-            AS->>ADB: Save evaluation
-            AS->>MQ: Publish Status [COMPLETED] and analysis ID
-            MQ-->>JS: Consume Status [COMPLETED] and analysis ID
-            JS->>JDB: Save Status [COMPLETED] and analysis ID
-        else Retrieval, AI, or validation fails
-            AS->>ADB: Save failure receipt
-            AS->>MQ: Publish Status [FAILED] and error details
-            MQ-->>JS: Consume Status [FAILED] and error details
-            JS->>JDB: Save Status [FAILED] and error details
-        end
-
-        UI->>JS: Poll submission status
-        JS->>JDB: Read submission
-        JDB-->>JS: Current status and outcome
-        JS-->>UI: Status [COMPLETED] with analysis ID, or Status [FAILED] with message
-    end
-```
-
-
-
+The sequence is split into preparation, dispatch, asynchronous processing, and polling, preserving the success and failure branches. The original [Mermaid source](docs/diagrams/job-analysis-sequence.mmd) is retained.
 
 ## Service Responsibilities and Data Ownership
 
