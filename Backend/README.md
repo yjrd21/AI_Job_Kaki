@@ -1,13 +1,5 @@
 # JobKaki Backend
 
-## LLD Architecture
-
-![JobKaki backend low-level design](docs/images/backend-lld.png)
-
-[View and edit the backend LLD in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=348-170)
-
-The LLD reflects the current controller/service/repository implementation. It shows each service's owned data, the candidate/CV snapshot call, RabbitMQ listeners and events, and the AI resolution, evaluation, and validation components.
-
 ## Job Analysis Processing
 
 ![JobKaki backend job analysis sequence](docs/images/job-analysis-sequence.png)
