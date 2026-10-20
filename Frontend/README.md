@@ -2,9 +2,15 @@
 
 ## LLD Architecture
 
-> **Figma link coming soon.** Frontend low-level design covering feature layers and component interactions.
+![JobKaki frontend low-level design: shared request and response flow with supporting authentication](docs/images/frontend-lld.png)
 
-<!-- Replace this placeholder with the frontend LLD Figma link. -->
+[View and edit the LLD in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=339-170)
+
+This proposed design shows one shared flow for job analysis, accounts, and candidate profiles. Requests pass from views through controllers, use cases, repositories, and the HTTP client to the backend. Results return through presenters as view state; authentication is shown as a supporting flow.
+
+The arrows show runtime flow. Source-code dependencies point inward toward application contracts and domain models.
+
+### Current Implementation
 
 Features such as jobs, candidate profiles, and users separate responsibilities into four layers:
 
