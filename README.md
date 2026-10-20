@@ -13,6 +13,8 @@ JobKaki helps candidates compare a job opportunity with their CV, target roles, 
 
 ## System Architecture
 
+![JobKaki System Architecture V2](docs/images/system-architecture-v2.png)
+
 The [system architecture in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=41-30&p=f&m=draw) is the visual reference for services and infrastructure.
 
 For low-level design and example data flows, read the [frontend README](Frontend/README.md) and [backend README](Backend/README.md).
