@@ -4,7 +4,7 @@
 
 ![JobKaki frontend low-level design: shared request and response flow with supporting authentication](docs/images/frontend-lld.png)
 
-[View and edit the LLD in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=339-170)
+[View the LLD in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=339-170)
 
 This proposed design shows one shared flow for job analysis, accounts, and candidate profiles. Requests pass from views through controllers, use cases, repositories, and the HTTP client to the backend. Results return through presenters as view state; authentication is shown as a supporting flow.
 
