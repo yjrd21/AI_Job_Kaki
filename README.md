@@ -1,5 +1,6 @@
 # JobKaki
 
+
 ## User Journey Demo
 
 > **Video coming soon.**
@@ -9,6 +10,12 @@
 <!-- Replace this placeholder with the user-journey recording or a link to the video. -->
 
 JobKaki helps candidates compare a job opportunity with their CV, target roles, work preferences, and deal-breakers. It turns a repetitive manual evaluation process into a reusable workflow, producing requirement matches, potential concerns, and questions to clarify before applying.
+
+## System Architecture
+
+The [system architecture in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=41-30) is the visual reference for services and infrastructure.
+
+For low-level design and example data flows, read the [frontend README](Frontend/README.md) and [backend README](Backend/README.md).
 
 ## Personal Motivation
 
@@ -36,11 +43,6 @@ JobKaki helps candidates compare a job opportunity with their CV, target roles, 
 - View analysis progress, completed reports, and submission history.
 - Receive actionable failure messages when the job content or CV cannot be used.
 
-## System Architecture
-
-The [system architecture in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=41-30) is the visual reference for services and infrastructure.
-
-For low-level design, read the [frontend README](Frontend/README.md) and [backend README](Backend/README.md).
 
 ## Key Architectural Decisions and Tradeoffs
 
