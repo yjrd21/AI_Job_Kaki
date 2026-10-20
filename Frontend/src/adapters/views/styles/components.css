@@ -1,0 +1,383 @@
+/* Style shared badges and their semantic colour variants. */
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  padding: 6px 9px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.ui-badge--neutral {
+  background: var(--color-neutral-bg);
+  color: var(--color-neutral-text);
+}
+.ui-badge--success {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+.ui-badge--warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+.ui-badge--danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+/* Distinguish field help text from validation errors. */
+.ui-field-hint {
+  color: var(--color-muted);
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+.ui-field-error {
+  color: var(--color-danger-text);
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
+/* Arrange page headings, descriptions, and optional actions. */
+.ui-page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+}
+.ui-page-header .display-title {
+  margin-bottom: 12px;
+}
+.ui-page-description {
+  max-width: 560px;
+  line-height: 1.65;
+  margin-bottom: 0;
+}
+
+/* Style the native dialog surface, backdrop, and content regions. */
+.ui-modal {
+  width: min(480px, calc(100vw - 32px));
+  max-height: min(90vh, 750px);
+  overflow-y: auto;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  padding: 24px;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.16);
+}
+.ui-modal::backdrop {
+  background: rgba(14, 28, 23, 0.5);
+}
+.ui-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.ui-modal-header .section-title {
+  margin: 0;
+}
+.ui-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  padding: 7px;
+}
+.ui-icon-button:hover {
+  background: var(--color-neutral-bg);
+}
+.ui-modal-description {
+  margin-top: 12px;
+  line-height: 1.6;
+}
+.ui-modal-body {
+  margin-top: 18px;
+}
+.ui-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+/* Display ordered workflow steps and their active or completed states. */
+.ui-step-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+}
+.ui-step-progress li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-muted);
+}
+.ui-step-progress li.is-active {
+  color: var(--color-forest);
+  font-weight: 700;
+}
+.ui-step-progress li.is-complete {
+  color: var(--color-success-text);
+}
+.ui-step-number {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+}
+.is-active .ui-step-number {
+  border-color: var(--color-forest);
+  background: var(--color-forest);
+  color: white;
+}
+
+/* Style informational, success, and failure notices. */
+.ui-alert {
+  display: flex;
+  gap: 12px;
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.ui-alert--info {
+  color: var(--color-forest);
+  background: var(--color-info-bg);
+}
+.ui-alert--success {
+  color: var(--color-success-text);
+  background: var(--color-success-bg);
+}
+.ui-alert--danger {
+  color: var(--color-danger-text);
+  background: var(--color-danger-bg);
+}
+.ui-alert strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Disable loading animation when the user prefers reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+/* Shared authenticated application frame. Feature pages own only their content. */
+
+/* Arrange the shared sidebar and main application workspace. */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  background: var(--color-paper);
+}
+.app-shell__workspace {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Keep desktop navigation visible beside the scrolling workspace. */
+.app-sidebar {
+  flex: 0 0 var(--app-sidebar-width);
+  width: var(--app-sidebar-width);
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  background: var(--color-forest);
+  color: white;
+}
+.app-sidebar__brand-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+.app-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+.app-sidebar__brand-mark {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--color-sidebar-brand);
+  font-weight: 700;
+}
+
+/* Style navigation links and identify the active destination. */
+.app-sidebar__nav {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+}
+.app-sidebar__nav-link {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  color: var(--color-sidebar-text);
+  font-size: 13px;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease;
+}
+.app-sidebar__nav-link:hover {
+  background: var(--color-sidebar-hover);
+  color: white;
+}
+.app-sidebar__nav-link--active {
+  background: var(--color-sidebar-selected);
+  color: white;
+  font-weight: 600;
+}
+
+/* Group account identity and logout controls at the foot of the sidebar. */
+.app-sidebar__account {
+  border-top: 1px solid var(--color-sidebar-divider);
+  padding-top: 16px;
+}
+.app-sidebar__account-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.app-sidebar__avatar,
+.app-shell__header-avatar {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--color-sidebar-avatar);
+  color: var(--color-forest);
+  font-size: 14px;
+  font-weight: 700;
+}
+.app-sidebar__account-copy {
+  min-width: 0;
+}
+.app-sidebar__account-name {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-sidebar__account-plan,
+.app-sidebar__logout {
+  color: var(--color-sidebar-text);
+  font-size: 12px;
+}
+.app-sidebar__logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.app-sidebar__logout:hover {
+  color: white;
+}
+
+/* Arrange the current page label and shared header actions. */
+.app-shell__header {
+  height: var(--app-header-height);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 0 var(--app-content-padding);
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-paper);
+}
+.app-shell__header-start,
+.app-shell__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.app-shell__page-name {
+  font-size: 15px;
+  font-weight: 500;
+}
+.app-shell__header-actions a {
+  color: var(--color-muted);
+}
+
+/* Constrain page content width and apply shared workspace padding. */
+.app-shell__content {
+  width: 100%;
+  max-width: var(--app-content-max-width);
+  margin: 0 auto;
+  padding: 40px var(--app-content-padding) 48px;
+}
+.app-shell__menu,
+.app-sidebar__close,
+.app-shell__scrim {
+  display: none;
+}
+
+/* Replace the desktop sidebar with a mobile drawer and backdrop. */
+@media (max-width: 767px) {
+  .app-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+  .app-sidebar--open {
+    transform: translateX(0);
+  }
+  .app-sidebar__close,
+  .app-shell__menu {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .app-shell__scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: rgba(0, 0, 0, 0.3);
+  }
+  .app-shell__header {
+    padding: 0 20px;
+  }
+  .app-shell__content {
+    padding: 32px 20px 40px;
+  }
+}
+/* Disable sidebar transitions when the user prefers reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .app-sidebar,
+  .app-sidebar__nav-link {
+    transition: none;
+  }
+}

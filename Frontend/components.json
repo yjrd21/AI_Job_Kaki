@@ -5,9 +5,13 @@
   "tsx": true,
   "tailwind": {
     "config": "tailwind.config.js",
-    "css": "src/styles/globals.css",
+    "css": "src/adapters/views/styles/globals.css",
     "baseColor": "neutral",
     "cssVariables": true
   },
-  "aliases": { "components": "./src/components", "utils": "./src/utils" }
+  "aliases": {
+    "components": "./src/adapters/views/components/composed",
+    "utils": "./src/adapters/views/utils",
+    "ui": "./src/adapters/views/components/primitives"
+  }
 }
