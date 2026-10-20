@@ -14,7 +14,7 @@ The LLD reflects the current controller/service/repository implementation. It sh
 
 [View and edit the sequence diagram in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=347-170)
 
-The sequence is split into preparation, dispatch, asynchronous processing, and polling, preserving the success and failure branches. The original [Mermaid source](docs/diagrams/job-analysis-sequence.mmd) is retained.
+One continuous sequence shows preparation, dispatch, asynchronous processing, and polling with nested success/failure branches. Database operations are grouped with their owning service lifelines. The original [Mermaid source](docs/diagrams/job-analysis-sequence.mmd) is retained.
 
 ## Service Responsibilities and Data Ownership
 
