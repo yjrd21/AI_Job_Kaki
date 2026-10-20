@@ -4,11 +4,10 @@
 
 ![JobKaki backend job analysis sequence](docs/images/job-analysis-sequence.png)
 
-[View and edit the sequence diagram in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=347-170)
+[View the sequence diagram in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=347-170)
 
-One continuous sequence shows preparation, dispatch, asynchronous processing, and polling with nested success/failure branches. Database operations are grouped with their owning service lifelines. The original [Mermaid source](docs/diagrams/job-analysis-sequence.mmd) is retained.
 
-## Service Responsibilities and Data Ownership
+## Service Responsibilities
 
 | Service                        | Default port | Responsibility                                                                                  |
 | ------------------------------ | ------------ | ----------------------------------------------------------------------------------------------- |
@@ -19,7 +18,7 @@ One continuous sequence shows preparation, dispatch, asynchronous processing, an
 | Config Server (`configserver`) | 8888         | Serve configuration from its `classpath:/config` native repository                              |
 | Eureka (`eureka`)              | 8761         | Register application services for gateway discovery                                             |
 
-Keycloak runs separately on port 8084 in the local launcher. PostgreSQL, MongoDB, and RabbitMQ are infrastructure dependencies, not application services.
+## Data Ownership
 
 | Owner        | Store                | Data                                                                                                                  |
 | ------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------- |
