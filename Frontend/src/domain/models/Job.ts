@@ -37,6 +37,12 @@ export interface RequirementMatch {
   explanation: string;
 }
 
+// Keep review claims and their source distinct from posting-based concerns.
+export interface CompanyReviews {
+  status: "FOUND" | "NO_RELEVANT_FINDINGS" | "UNAVAILABLE";
+  concerns: { summary: string; sourceUrl: string; scope: "COMPANY" | "ROLE" }[];
+}
+
 // Represent the saved evaluation report displayed to the candidate.
 export interface JobAnalysis {
   id: string;
@@ -46,6 +52,7 @@ export interface JobAnalysis {
   applicationDeadline: string | null;
   salaryRange: string | null;
   redFlags: string[];
+  companyReviews?: CompanyReviews | null;
   requirements: RequirementMatch[];
   matchSummary: string;
   questionsToClarify: string[];

@@ -9,7 +9,7 @@
 
 <!-- Replace this placeholder with the user-journey recording or a link to the video. -->
 
-JobKaki helps candidates compare a job opportunity with their CV, target roles, work preferences, and deal-breakers. It turns a repetitive manual evaluation process into a reusable workflow, producing requirement matches, potential concerns, and questions to clarify before applying.
+JobKaki helps candidates compare a job opportunity with their CV, target roles, work preferences, and deal-breakers. It turns a repetitive manual evaluation process into a reusable workflow, producing requirement matches, potential concerns informed by the posting and accessible Glassdoor reviews, and questions to clarify before applying.
 
 ## System Architecture
 
@@ -46,6 +46,7 @@ Explore the [clickable prototypes in Figma](https://www.figma.com/design/TlqNS7H
 - Create candidate profiles containing a CV, target roles, preferences, and red flags.
 - Submit a public LinkedIn job URL or paste a job description.
 - Compare concrete job requirements with evidence from the attached CV.
+- Check accessible Glassdoor reviews for company and role concerns, with clear attribution and source links.
 - View analysis progress, completed reports, and submission history.
 - Receive actionable failure messages when the job content or CV cannot be used.
 

@@ -156,6 +156,9 @@ describe("job result through the use-case presenter boundary", () => {
     });
     await screen.findByText(analysis.matchSummary);
     expect(
+      screen.getByText("Glassdoor reviews were not checked for this analysis."),
+    ).toBeInTheDocument();
+    expect(
       screen.getByText("Role overview is unavailable for this analysis."),
     ).toBeInTheDocument();
     expect(
@@ -190,6 +193,70 @@ describe("job result through the use-case presenter boundary", () => {
       screen.queryByRole("link", { name: /Run a new analysis/ }),
     ).not.toBeInTheDocument();
   });
+
+  it("attributes external concerns to Glassdoor with clickable sources and scope", async () => {
+    showResult(
+      { status: "COMPLETED", jobAnalysisId: "analysis-id" },
+      undefined,
+      undefined,
+      {
+        companyReviews: {
+          status: "FOUND",
+          concerns: [
+            {
+              summary: "A reviewer reported long hours.",
+              sourceUrl: "https://www.glassdoor.com/Reviews/Example.htm",
+              scope: "COMPANY",
+            },
+            {
+              summary: "An engineer reported frequent overtime.",
+              sourceUrl: "https://www.glassdoor.sg/Reviews/Engineer.htm",
+              scope: "ROLE",
+            },
+          ],
+        },
+      },
+    );
+    expect(
+      await screen.findByText("A reviewer reported long hours."),
+    ).toBeInTheDocument();
+    const company = screen.getByRole("link", {
+      name: "Found on Glassdoor · Company-wide review",
+    });
+    expect(company).toHaveAttribute(
+      "href",
+      "https://www.glassdoor.com/Reviews/Example.htm",
+    );
+    expect(company).toHaveAttribute("rel", "noopener noreferrer");
+    expect(
+      screen.getByRole("link", { name: "Found on Glassdoor · Similar role" }),
+    ).toHaveAttribute("href", "https://www.glassdoor.sg/Reviews/Engineer.htm");
+  });
+
+  it.each([
+    [
+      "UNAVAILABLE",
+      "Glassdoor reviews could not be checked reliably for this company or position.",
+    ],
+    [
+      "NO_RELEVANT_FINDINGS",
+      "No material concerns were identified in the accessible Glassdoor reviews. This does not establish that none exist.",
+    ],
+  ] as const)(
+    "shows the %s research outcome without claiming the employer has no issues",
+    async (status, message) => {
+      showResult(
+        { status: "COMPLETED", jobAnalysisId: "analysis-id" },
+        undefined,
+        undefined,
+        { companyReviews: { status, concerns: [] } },
+      );
+      expect(await screen.findByText(message)).toBeInTheDocument();
+      expect(
+        screen.queryByRole("link", { name: /Found on Glassdoor/ }),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   it("renders retrieval errors without presenting an analysis failure or recovery link", async () => {
     const failure = new Error("Job request unavailable");

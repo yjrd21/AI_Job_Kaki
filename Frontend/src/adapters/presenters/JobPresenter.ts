@@ -35,6 +35,12 @@ export type JobAnalysisPresentation = JobAnalysis & {
     heading: string;
     roleOverview: string;
     hasRoleOverview: boolean;
+    reviewMessage: string;
+    reviewConcerns: {
+      summary: string;
+      sourceUrl: string;
+      sourceLabel: string;
+    }[];
     details: { label: string; value: string }[];
   };
 };
@@ -161,12 +167,37 @@ export class JobPresenter implements JobPresenterContract<
           },
           { label: "Analysed", value: formatDate(analysis.createdAt) },
         ],
+        reviewMessage: this.reviewMessage(analysis),
+        reviewConcerns:
+          analysis.companyReviews?.status === "FOUND"
+            ? analysis.companyReviews.concerns.map((concern) => ({
+                summary: concern.summary,
+                sourceUrl: concern.sourceUrl,
+                sourceLabel:
+                  concern.scope === "ROLE"
+                    ? "Found on Glassdoor · Similar role"
+                    : "Found on Glassdoor · Company-wide review",
+              }))
+            : [],
         hasRoleOverview: !!analysis.roleOverview?.trim(),
         roleOverview:
           analysis.roleOverview?.trim() ||
           "Role overview is unavailable for this analysis.",
       },
     };
+  }
+
+  private reviewMessage(analysis: JobAnalysis): string {
+    switch (analysis.companyReviews?.status) {
+      case "FOUND":
+        return "These concerns were reported by Glassdoor reviewers and may not reflect this specific team or position.";
+      case "NO_RELEVANT_FINDINGS":
+        return "No material concerns were identified in the accessible Glassdoor reviews. This does not establish that none exist.";
+      case "UNAVAILABLE":
+        return "Glassdoor reviews could not be checked reliably for this company or position.";
+      default:
+        return "Glassdoor reviews were not checked for this analysis.";
+    }
   }
 
   // Acknowledge deletion without adding shared state or controlling navigation.

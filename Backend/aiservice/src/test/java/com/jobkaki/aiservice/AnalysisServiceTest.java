@@ -35,7 +35,7 @@ class AnalysisServiceTest {
     }
 
     private JobAnalysisResult result(boolean sufficient, List<RequirementMatch> requirements) {
-        return new JobAnalysisResult(sufficient, true, "Build backend services for Example Co, owning Java APIs end to end. Requires Java experience.", "Principal Engineer", null, null, List.of(),
+        return new JobAnalysisResult(sufficient, true, "Build backend services for Example Co, owning Java APIs end to end. Requires Java experience.", "Principal Engineer", null, null, List.of(), CompanyReviews.unavailable(),
                 requirements, "The role requires Java experience; the candidate's experience needs clarification.", List.of());
     }
 
@@ -54,6 +54,14 @@ class AnalysisServiceTest {
     void successfulUrlAnalysisUsesResolvedContentAndPreservesUnknownAndMissingOptionalFields() {
         when(resolver.resolve("URL", request.jobContext())).thenReturn("Resolved job description with Java requirements");
         when(openAI.getAnalysis(anyString(), eq(request.candidateContext()))).thenReturn(validResult());
+        var reviews = new CompanyReviews(CompanyReviews.Status.FOUND, List.of(new CompanyReviews.Concern(
+                "A Glassdoor reviewer reported long hours.", "https://www.glassdoor.com/Reviews/Example.htm",
+                CompanyReviews.Scope.COMPANY)));
+        var valid = validResult();
+        when(openAI.getAnalysis(anyString(), eq(request.candidateContext()))).thenReturn(new JobAnalysisResult(
+                valid.jobInformationSufficient(), valid.candidateInformationSufficient(), valid.roleOverview(),
+                valid.roleTitle(), valid.applicationDeadline(), valid.salaryRange(), valid.redFlags(), reviews,
+                valid.requirements(), valid.matchSummary(), valid.questionsToClarify()));
         service.analyze(request);
         var prompt = ArgumentCaptor.forClass(String.class);
         verify(openAI).getAnalysis(prompt.capture(), eq(request.candidateContext()));
@@ -67,6 +75,8 @@ class AnalysisServiceTest {
         assertEquals("Build backend services for Example Co, owning Java APIs end to end. Requires Java experience.", saved.getValue().getRoleOverview());
         when(repository.findById(saved.getValue().getId())).thenReturn(Optional.of(saved.getValue()));
         assertEquals(validResult().roleOverview(), service.get(saved.getValue().getId()).roleOverview());
+        assertEquals(reviews, service.get(saved.getValue().getId()).companyReviews());
+        verify(openAI, times(1)).getAnalysis(anyString(), eq(request.candidateContext()));
         assertEquals(validResult().matchSummary(), saved.getValue().getMatchSummary());
         assertEquals(validResult().redFlags(), saved.getValue().getRedFlags());
         assertEquals(validResult().questionsToClarify(), saved.getValue().getQuestionsToClarify());
@@ -86,8 +96,23 @@ class AnalysisServiceTest {
         var response = service.get(older.getId());
 
         assertNull(response.roleOverview());
+        assertNull(response.companyReviews());
         assertEquals("Engineer", response.roleTitle());
         verifyNoInteractions(openAI);
+    }
+
+    @Test
+    void unavailableReviewEvidenceDoesNotDiscardTheCvAssessment() {
+        when(resolver.resolve(anyString(), anyString())).thenReturn("Resolved posting");
+        when(openAI.getAnalysis(anyString(), eq(request.candidateContext()))).thenReturn(validResult());
+
+        service.analyze(request);
+
+        var saved = ArgumentCaptor.forClass(JobAnalysis.class);
+        verify(repository).insert(saved.capture());
+        assertEquals(CompanyReviews.Status.UNAVAILABLE, saved.getValue().getCompanyReviews().status());
+        assertEquals(validResult().matchSummary(), saved.getValue().getMatchSummary());
+        assertEquals(JobStatus.COMPLETED, events().get(events().size() - 1).status());
     }
 
     @Test
@@ -208,7 +233,7 @@ class AnalysisServiceTest {
         var valid = validResult();
         when(openAI.getAnalysis(anyString(), eq(request.candidateContext()))).thenReturn(
                 new JobAnalysisResult(true, false, valid.roleOverview(), valid.roleTitle(), null, null,
-                        valid.redFlags(), valid.requirements(), valid.matchSummary(), valid.questionsToClarify()));
+                        valid.redFlags(), valid.companyReviews(), valid.requirements(), valid.matchSummary(), valid.questionsToClarify()));
         service.analyze(request);
         var failure = events().get(events().size() - 1);
         assertEquals("CV_CONTENT_UNAVAILABLE", failure.errorCode());

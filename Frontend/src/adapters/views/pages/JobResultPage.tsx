@@ -138,8 +138,29 @@ export function JobResultPage() {
                 </ul>
               ) : (
                 <p className="text-sm muted">
-                  No specific red flags were returned.
+                  No specific concerns were identified in the posting.
                 </p>
+              )}
+              <h3 className="font-semibold mt-6 mb-3">Glassdoor reviews</h3>
+              <p className="text-sm muted mb-4">
+                {result.data.presentation.reviewMessage}
+              </p>
+              {result.data.presentation.reviewConcerns.length > 0 && (
+                <ul className="space-y-3">
+                  {result.data.presentation.reviewConcerns.map((concern, i) => (
+                    <li className="card px-4 py-3 text-sm" key={i}>
+                      <p className="mb-2">{concern.summary}</p>
+                      <a
+                        className="text-rust underline"
+                        href={concern.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {concern.sourceLabel}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
               )}
             </section>
             <section>

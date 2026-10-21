@@ -54,7 +54,11 @@ public class OpenAIService {
                 .bodyValue(Map.of(
                         "model", model,
                         "input", List.of(Map.of("role", "user", "content", content)),
-                        "text", Map.of("format", structuredOutputFormat())))
+                        "text", Map.of("format", structuredOutputFormat()),
+                        "tools", List.of(Map.of("type", "web_search", "filters",
+                                Map.of("allowed_domains", CompanyReviewEvidenceValidator.DOMAINS))),
+                        "tool_choice", "required",
+                        "include", List.of("web_search_call.action.sources")))
                 .retrieve()
                 .onStatus(status -> status.isError(), clientResponse -> {
                     log.warn("OpenAI request failed with status {}", clientResponse.statusCode());
@@ -62,7 +66,7 @@ public class OpenAIService {
                             "AI_SERVICE_UNAVAILABLE", "The AI service is temporarily unavailable. Please try again later.")));
                 })
                 .bodyToMono(JsonNode.class)
-                .block(Duration.ofSeconds(90));
+                .block(Duration.ofSeconds(150));
 
         if (response == null || !"completed".equals(response.path("status").asString())) {
             throw new AnalysisException("AI_RESPONSE_INCOMPLETE", "The AI service did not complete this evaluation. Please try again.");
@@ -75,7 +79,11 @@ public class OpenAIService {
         }
 
         try {
-            return objectMapper.readValue(answer, JobAnalysisResult.class);
+            JobAnalysisResult result = objectMapper.readValue(answer, JobAnalysisResult.class);
+            return new JobAnalysisResult(result.jobInformationSufficient(), result.candidateInformationSufficient(),
+                    result.roleOverview(), result.roleTitle(), result.applicationDeadline(), result.salaryRange(),
+                    result.redFlags(), CompanyReviewEvidenceValidator.validate(response, result.companyReviews()),
+                    result.requirements(), result.matchSummary(), result.questionsToClarify());
         } catch (RuntimeException exception) {
             throw new AnalysisException("AI_RESULT_INVALID", "The AI service returned an invalid evaluation. Please try again.");
         }
@@ -117,29 +125,24 @@ public class OpenAIService {
                 "strict", true,
                 "schema", Map.of(
                         "type", "object",
-                        "properties", Map.of(
-                                "jobInformationSufficient", Map.of("type", "boolean"),
-                                "candidateInformationSufficient", Map.of("type", "boolean"),
-                                "roleOverview", Map.of(
+                        "properties", Map.ofEntries(
+                                Map.entry("jobInformationSufficient", Map.of("type", "boolean")),
+                                Map.entry("candidateInformationSufficient", Map.of("type", "boolean")),
+                                Map.entry("roleOverview", Map.of(
                                         "type", List.of("string", "null"),
                                         "description", "One neutral paragraph of 3-5 sentences summarizing the job, "
                                                 + "team or product purpose, main responsibilities, and minimum qualifications "
                                                 + "from the supplied posting. Summarize available details without inventing "
                                                 + "missing information or assessing the candidate. Null only when the role "
-                                                + "cannot be described from the supplied information."),
-                                "roleTitle", nullableStringSchema(),
-                                "applicationDeadline", nullableStringSchema(),
-                                "salaryRange", nullableStringSchema(),
-                                "redFlags", Map.of(
-                                        "type", "array",
-                                        "items", Map.of("type", "string")),
-                                "requirements", Map.of(
-                                        "type", "array",
-                                        "items", requirementSchema),
-                                "matchSummary", Map.of("type", "string"),
-                                "questionsToClarify", Map.of(
-                                        "type", "array",
-                                        "items", Map.of("type", "string"))),
+                                                + "cannot be described from the supplied information.")),
+                                Map.entry("roleTitle", nullableStringSchema()),
+                                Map.entry("applicationDeadline", nullableStringSchema()),
+                                Map.entry("salaryRange", nullableStringSchema()),
+                                Map.entry("redFlags", Map.of("type", "array", "items", Map.of("type", "string"))),
+                                Map.entry("companyReviews", CompanyReviewEvidenceValidator.schema()),
+                                Map.entry("requirements", Map.of("type", "array", "items", requirementSchema)),
+                                Map.entry("matchSummary", Map.of("type", "string")),
+                                Map.entry("questionsToClarify", Map.of("type", "array", "items", Map.of("type", "string")))),
                         "required", List.of(
                                 "jobInformationSufficient",
                                 "candidateInformationSufficient",
@@ -148,6 +151,7 @@ public class OpenAIService {
                                 "applicationDeadline",
                                 "salaryRange",
                                 "redFlags",
+                                "companyReviews",
                                 "requirements",
                                 "matchSummary",
                                 "questionsToClarify"),

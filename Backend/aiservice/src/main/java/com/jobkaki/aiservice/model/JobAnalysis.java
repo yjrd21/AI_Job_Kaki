@@ -21,6 +21,7 @@ public class JobAnalysis {
     private String applicationDeadline;
     private String salaryRange;
     private List<String> redFlags;
+    private CompanyReviews companyReviews;
     private List<RequirementMatch> requirements;
     private String matchSummary;
     private List<String> questionsToClarify;
