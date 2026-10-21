@@ -1,15 +1,12 @@
 # JobKaki
 
+JobKaki is a full-stack microservices web application built with Java, Spring Boot and React, with OpenAI integration. Candidates create a reusable profile containing their CV, target roles, work preferences and deal-breakers, then submit a job description or public LinkedIn job link for analysis. The application assesses the fit, searches online sources such as Glassdoor, and returns requirement comparisons, potential concerns and questions to clarify before applying or during an interview.
 
-## User Journey Demo
+## Prototype Demo
 
-> **Video coming soon.**
->
-> A walkthrough of signing in, creating a candidate profile, uploading a CV, submitting a job, and reviewing the analysis.
+> Happy flow walkthrough - signing in, creating a candidate profile, uploading a CV, submitting a job, and reviewing the analysis.
 
-<!-- Replace this placeholder with the user-journey recording or a link to the video. -->
-
-JobKaki helps candidates compare a job opportunity with their CV, target roles, work preferences, and deal-breakers. It turns a repetitive manual evaluation process into a reusable workflow, producing requirement matches, potential concerns informed by the posting and accessible Glassdoor reviews, and questions to clarify before applying.
+https://github.com/user-attachments/assets/f9ce5087-dded-4cd3-9087-0dff081f73dd
 
 ## System Architecture
 
