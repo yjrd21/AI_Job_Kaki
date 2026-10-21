@@ -16,7 +16,7 @@ public class JobAnalysis {
     private UUID id;
 
     private UUID jobSubmissionId;
-    private String companyContext;
+    private String roleOverview;
     private String roleTitle;
     private String applicationDeadline;
     private String salaryRange;

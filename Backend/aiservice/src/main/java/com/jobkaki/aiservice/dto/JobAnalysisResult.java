@@ -7,7 +7,7 @@ import java.util.List;
 public record JobAnalysisResult(
         boolean jobInformationSufficient,
         boolean candidateInformationSufficient,
-        String companyContext,
+        String roleOverview,
         String roleTitle,
         String applicationDeadline,
         String salaryRange,

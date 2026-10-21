@@ -9,7 +9,7 @@ import java.util.UUID;
 public record JobAnalysisResponse(
         UUID id,
         UUID jobSubmissionId,
-        String companyContext,
+        String roleOverview,
         String roleTitle,
         String applicationDeadline,
         String salaryRange,

@@ -50,10 +50,60 @@ describe("stateless JobPresenter output", () => {
     expect(job).not.toHaveProperty("presentation");
     expect(presenter.presentAnalysis(analysis).presentation).toMatchObject({
       heading: "Job analysis",
-      companyContext: "Company context was not provided in the posting.",
+      roleOverview: "Role overview is unavailable for this analysis.",
     });
     expect(analysis).not.toHaveProperty("presentation");
   });
+
+  it("keeps the role overview separate from candidate suitability", () => {
+    const presenter = new JobPresenter();
+    const overview =
+      "Build video creation experiences across mobile and backend.";
+    const report = presenter.presentAnalysis({
+      ...analysis,
+      roleOverview: overview,
+    });
+    expect(report.presentation.roleOverview).toBe(overview);
+    expect(report.presentation.hasRoleOverview).toBe(true);
+    expect(report.matchSummary).toBe(analysis.matchSummary);
+  });
+
+  it.each([null, undefined, "", "   "])(
+    "presents missing or blank overview %s without claiming the posting lacked information",
+    (overview) => {
+      const presenter = new JobPresenter();
+      const legacy = { ...analysis, roleOverview: overview };
+      if (overview === undefined) delete legacy.roleOverview;
+      const report = presenter.presentAnalysis(legacy as typeof analysis);
+      expect(report.presentation).toMatchObject({
+        hasRoleOverview: false,
+        roleOverview: "Role overview is unavailable for this analysis.",
+      });
+    },
+  );
+
+  it.each(["TEXT", "URL"] as const)(
+    "prefills reanalysis for %s submissions",
+    (type) => {
+      const presenter = new JobPresenter();
+      const report = presenter.presentCompleted({
+        ...job,
+        submissionType: type,
+        candidateContextId: "profile/a?b",
+        jobContext: "https://example.test/job?a=1&b=2",
+      });
+      expect(report.presentation.state).toBe("completed");
+      if (report.presentation.state !== "completed")
+        throw new Error("Expected completed");
+      const params = new URL(
+        report.presentation.reanalyseHref,
+        "https://example.test",
+      ).searchParams;
+      expect(params.get("type")).toBe(type);
+      expect(params.get("context")).toBe("profile/a?b");
+      expect(params.get("jobContext")).toBe("https://example.test/job?a=1&b=2");
+    },
+  );
 
   it("preserves the cause and operation when presenting request errors", () => {
     const presenter = new JobPresenter();

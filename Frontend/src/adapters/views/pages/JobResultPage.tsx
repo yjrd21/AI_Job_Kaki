@@ -88,13 +88,21 @@ export function JobResultPage() {
               <p className="eyebrow mb-3">01 — THE OPPORTUNITY</p>
               <h2 className="section-title mb-3">Role overview</h2>
               <p className="muted text-[14px] leading-7">
-                {result.data.presentation.companyContext}
+                {result.data.presentation.roleOverview}
               </p>
+              {!result.data.presentation.hasRoleOverview && (
+                <Link
+                  className="btn btn-outline mt-4"
+                  to={display.reanalyseHref}
+                >
+                  Run a new analysis <ArrowRight size={16} />
+                </Link>
+              )}
             </section>
             <div className="rule" />
             <section>
-              <p className="eyebrow mb-3">02 — YOUR REQUIREMENTS</p>
-              <h2 className="section-title mb-5">Requirement by requirement</h2>
+              <p className="eyebrow mb-3">02 — THEIR REQUIREMENTS</p>
+              <h2 className="section-title mb-5">How your CV matches</h2>
               {result.data.requirements.length ? (
                 result.data.requirements.map((req, i) => (
                   <article

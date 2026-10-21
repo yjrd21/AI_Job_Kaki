@@ -16,7 +16,7 @@ type JobDisplayState =
       actionLabel: string;
       actionHref: string;
     }
-  | { state: "completed" };
+  | { state: "completed"; reanalyseHref: string };
 
 // Retain submission data for polling and links alongside presenter-prepared display state.
 export type JobPresentation = JobSubmission & {
@@ -29,11 +29,12 @@ export type JobPresentation = JobSubmission & {
   };
 };
 
-// Retain report data alongside the presenter-prepared report heading and company description.
+// Retain report data alongside the presenter-prepared report heading and role overview.
 export type JobAnalysisPresentation = JobAnalysis & {
   presentation: {
     heading: string;
-    companyContext: string;
+    roleOverview: string;
+    hasRoleOverview: boolean;
     details: { label: string; value: string }[];
   };
 };
@@ -137,6 +138,7 @@ export class JobPresenter implements JobPresenterContract<
       presentation: {
         ...this.presentSubmissionDetails(job),
         state: "completed",
+        reanalyseHref: `/analyse?type=${job.submissionType}&context=${encodeURIComponent(job.candidateContextId)}&jobContext=${encodeURIComponent(job.jobContext)}`,
       },
     };
   }
@@ -159,9 +161,10 @@ export class JobPresenter implements JobPresenterContract<
           },
           { label: "Analysed", value: formatDate(analysis.createdAt) },
         ],
-        companyContext:
-          analysis.companyContext ||
-          "Company context was not provided in the posting.",
+        hasRoleOverview: !!analysis.roleOverview?.trim(),
+        roleOverview:
+          analysis.roleOverview?.trim() ||
+          "Role overview is unavailable for this analysis.",
       },
     };
   }

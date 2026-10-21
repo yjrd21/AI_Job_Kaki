@@ -36,7 +36,7 @@ public class AnalysisResultValidator {
             }
         }
         // UNKNOWN is valid for a real requirement when candidate evidence is missing.
-        // Salary, deadline, and company context are optional.
+        // Salary, deadline, and role overview are optional.
     }
 
     private boolean blank(String value) {

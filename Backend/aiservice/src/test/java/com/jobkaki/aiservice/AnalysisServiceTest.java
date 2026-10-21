@@ -35,7 +35,7 @@ class AnalysisServiceTest {
     }
 
     private JobAnalysisResult result(boolean sufficient, List<RequirementMatch> requirements) {
-        return new JobAnalysisResult(sufficient, true, "Example Co", "Principal Engineer", null, null, List.of(),
+        return new JobAnalysisResult(sufficient, true, "Build backend services for Example Co, owning Java APIs end to end. Requires Java experience.", "Principal Engineer", null, null, List.of(),
                 requirements, "The role requires Java experience; the candidate's experience needs clarification.", List.of());
     }
 
@@ -64,7 +64,9 @@ class AnalysisServiceTest {
         verify(repository).insert(saved.capture());
         assertEquals(request.jobSubmissionId(), saved.getValue().getId());
         assertEquals("Principal Engineer", saved.getValue().getRoleTitle());
-        assertEquals("Example Co", saved.getValue().getCompanyContext());
+        assertEquals("Build backend services for Example Co, owning Java APIs end to end. Requires Java experience.", saved.getValue().getRoleOverview());
+        when(repository.findById(saved.getValue().getId())).thenReturn(Optional.of(saved.getValue()));
+        assertEquals(validResult().roleOverview(), service.get(saved.getValue().getId()).roleOverview());
         assertEquals(validResult().matchSummary(), saved.getValue().getMatchSummary());
         assertEquals(validResult().redFlags(), saved.getValue().getRedFlags());
         assertEquals(validResult().questionsToClarify(), saved.getValue().getQuestionsToClarify());
@@ -72,6 +74,20 @@ class AnalysisServiceTest {
         assertNull(saved.getValue().getSalaryRange());
         assertNull(saved.getValue().getApplicationDeadline());
         assertEquals(List.of(JobStatus.PROCESSING, JobStatus.COMPLETED), events().stream().map(event -> java.util.Objects.requireNonNull(event).status()).toList());
+    }
+
+    @Test
+    void olderAnalysisWithoutRoleOverviewRemainsRetrievable() {
+        JobAnalysis older = new JobAnalysis();
+        older.setId(request.jobSubmissionId());
+        older.setRoleTitle("Engineer");
+        when(repository.findById(older.getId())).thenReturn(Optional.of(older));
+
+        var response = service.get(older.getId());
+
+        assertNull(response.roleOverview());
+        assertEquals("Engineer", response.roleTitle());
+        verifyNoInteractions(openAI);
     }
 
     @Test
@@ -191,7 +207,7 @@ class AnalysisServiceTest {
         when(resolver.resolve(anyString(), anyString())).thenReturn("Resolved content");
         var valid = validResult();
         when(openAI.getAnalysis(anyString(), eq(request.candidateContext()))).thenReturn(
-                new JobAnalysisResult(true, false, valid.companyContext(), valid.roleTitle(), null, null,
+                new JobAnalysisResult(true, false, valid.roleOverview(), valid.roleTitle(), null, null,
                         valid.redFlags(), valid.requirements(), valid.matchSummary(), valid.questionsToClarify()));
         service.analyze(request);
         var failure = events().get(events().size() - 1);

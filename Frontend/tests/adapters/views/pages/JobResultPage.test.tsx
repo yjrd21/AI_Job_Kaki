@@ -11,15 +11,20 @@ import {
   makeApplication,
   makeSession,
 } from "../../../fixtures/application";
-import type { JobSubmission } from "../../../../src/domain/models/Job";
+import type {
+  JobAnalysis,
+  JobSubmission,
+} from "../../../../src/domain/models/Job";
 
 function showResult(
   update: Partial<JobSubmission> = {},
   requestError?: Error,
   reportError?: Error,
+  report: Partial<JobAnalysis> = {},
 ) {
   const { jobController, jobPresenter, repositories } = makeApplication();
   repositories.jobs.get.mockResolvedValue({ ...job, ...update });
+  repositories.analyses.get.mockResolvedValue({ ...analysis, ...report });
   if (requestError) repositories.jobs.get.mockRejectedValue(requestError);
   if (reportError) repositories.analyses.get.mockRejectedValue(reportError);
   const failed = vi.spyOn(jobPresenter, "presentFailed");
@@ -151,7 +156,17 @@ describe("job result through the use-case presenter boundary", () => {
     });
     await screen.findByText(analysis.matchSummary);
     expect(
-      screen.getByText("Company context was not provided in the posting."),
+      screen.getByText("Role overview is unavailable for this analysis."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Run a new analysis/ }),
+    ).toHaveAttribute(
+      "href",
+      "/analyse?type=TEXT&context=profile-id&jobContext=Job%20description",
+    );
+    expect(screen.getByText("02 — THEIR REQUIREMENTS")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "How your CV matches" }),
     ).toBeInTheDocument();
     expect(repositories.analyses.get).toHaveBeenCalledExactlyOnceWith(
       "analysis-id",
@@ -159,6 +174,21 @@ describe("job result through the use-case presenter boundary", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       "Job analysis",
     );
+  });
+
+  it("renders the generated role overview without the missing-overview action", async () => {
+    const overview =
+      "Build video creation tools. Deliver mobile and backend features. Requires CS fundamentals.";
+    showResult(
+      { status: "COMPLETED", jobAnalysisId: "analysis-id" },
+      undefined,
+      undefined,
+      { roleOverview: overview },
+    );
+    expect(await screen.findByText(overview)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /Run a new analysis/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders retrieval errors without presenting an analysis failure or recovery link", async () => {

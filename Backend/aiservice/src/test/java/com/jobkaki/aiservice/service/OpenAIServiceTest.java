@@ -35,7 +35,7 @@ class OpenAIServiceTest {
     @Test
     void parsesSufficiencyDecisionAndKeepsOptionalFieldsNullable() {
         var result = service("completed", """
-                {"jobInformationSufficient":true,"candidateInformationSufficient":true,"companyContext":null,"roleTitle":"Engineer",
+                {"jobInformationSufficient":true,"candidateInformationSufficient":true,"roleOverview":null,"roleTitle":"Engineer",
                  "applicationDeadline":null,"salaryRange":null,"redFlags":[],
                  "requirements":[{"requirement":"Java experience","status":"UNKNOWN",
                  "explanation":"The candidate's Java experience is not specified."}],
@@ -43,7 +43,21 @@ class OpenAIServiceTest {
                 """).getAnalysis("Evaluate the supplied description", candidate);
         assertTrue(result.jobInformationSufficient());
         assertNull(result.salaryRange());
+        assertNull(result.roleOverview());
         assertDoesNotThrow(() -> new AnalysisResultValidator().validate(result));
+    }
+
+    @Test
+    void parsesRoleOverviewSeparatelyFromCandidateMatchSummary() {
+        var result = service("completed", """
+                {"jobInformationSufficient":true,"candidateInformationSufficient":true,
+                 "roleOverview":"Build video creation tools across mobile and backend. Requires a CS degree and programming skills.",
+                 "roleTitle":"Engineer","applicationDeadline":null,"salaryRange":null,"redFlags":[],
+                 "requirements":[],"matchSummary":"Candidate has relevant mobile experience.","questionsToClarify":[]}
+                """).getAnalysis("Evaluate description", candidate);
+        assertEquals("Build video creation tools across mobile and backend. Requires a CS degree and programming skills.",
+                result.roleOverview());
+        assertEquals("Candidate has relevant mobile experience.", result.matchSummary());
     }
 
     @Test
@@ -109,6 +123,11 @@ class OpenAIServiceTest {
                         content.get(0).path("file_data").asString());
                 assertEquals("Job and candidate preferences", content.get(1).path("text").asString());
                 assertEquals("json_schema", body.path("text").path("format").path("type").asString());
+                var schema = body.path("text").path("format").path("schema");
+                assertTrue(schema.path("properties").has("roleOverview"));
+                assertFalse(schema.path("properties").has("companyContext"));
+                assertTrue(schema.path("properties").path("roleOverview").path("description").asString()
+                        .contains("minimum qualifications"));
                 assertTrue(body.path("text").path("format").path("schema").path("properties")
                         .has("candidateInformationSufficient"));
             }

@@ -41,7 +41,7 @@ export interface RequirementMatch {
 export interface JobAnalysis {
   id: string;
   jobSubmissionId: string;
-  companyContext: string | null;
+  roleOverview: string | null;
   roleTitle: string | null;
   applicationDeadline: string | null;
   salaryRange: string | null;

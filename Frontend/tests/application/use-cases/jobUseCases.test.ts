@@ -29,7 +29,7 @@ const job: JobSubmission = {
 const analysis: JobAnalysis = {
   id: "analysis-id",
   jobSubmissionId: "job-id",
-  companyContext: null,
+  roleOverview: null,
   roleTitle: null,
   applicationDeadline: null,
   salaryRange: null,

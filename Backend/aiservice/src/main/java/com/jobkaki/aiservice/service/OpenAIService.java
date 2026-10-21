@@ -105,7 +105,9 @@ public class OpenAIService {
                         "status", Map.of(
                                 "type", "string",
                                 "enum", List.of("MET", "PARTIALLY_MET", "NOT_MET", "UNKNOWN")),
-                        "explanation", Map.of("type", "string")),
+                        "explanation", Map.of("type", "string", "description",
+                                "Explain the assessment using specific supporting or conflicting CV evidence. "
+                                        + "For UNKNOWN, identify the missing evidence. Do not simply restate the requirement.")),
                 "required", List.of("requirement", "status", "explanation"),
                 "additionalProperties", false);
 
@@ -118,7 +120,13 @@ public class OpenAIService {
                         "properties", Map.of(
                                 "jobInformationSufficient", Map.of("type", "boolean"),
                                 "candidateInformationSufficient", Map.of("type", "boolean"),
-                                "companyContext", nullableStringSchema(),
+                                "roleOverview", Map.of(
+                                        "type", List.of("string", "null"),
+                                        "description", "One neutral paragraph of 3-5 sentences summarizing the job, "
+                                                + "team or product purpose, main responsibilities, and minimum qualifications "
+                                                + "from the supplied posting. Summarize available details without inventing "
+                                                + "missing information or assessing the candidate. Null only when the role "
+                                                + "cannot be described from the supplied information."),
                                 "roleTitle", nullableStringSchema(),
                                 "applicationDeadline", nullableStringSchema(),
                                 "salaryRange", nullableStringSchema(),
@@ -135,7 +143,7 @@ public class OpenAIService {
                         "required", List.of(
                                 "jobInformationSufficient",
                                 "candidateInformationSufficient",
-                                "companyContext",
+                                "roleOverview",
                                 "roleTitle",
                                 "applicationDeadline",
                                 "salaryRange",
