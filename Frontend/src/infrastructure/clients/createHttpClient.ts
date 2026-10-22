@@ -6,8 +6,8 @@ export function createHttpClient(
   baseURL: string,
   getToken: () => Promise<string | undefined>,
 ): HttpClientContract {
-  // Configure the API base URL and a twenty-second request timeout.
-  const client = axios.create({ baseURL, timeout: 20000 });
+  // Configure the API base URL and a five-second request timeout.
+  const client = axios.create({ baseURL, timeout: 5000 });
 
   // Attach a current bearer token to each outgoing request when a session is available.
   client.interceptors.request.use(async (config) => {
