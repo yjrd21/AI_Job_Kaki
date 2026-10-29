@@ -1,3 +1,4 @@
+import type { AnalysisProfilesOutputContract } from "../contracts/controllers/CandidateContextControllerContract";
 import type { CandidateContext } from "../../domain/models/CandidateContext";
 import type { CandidateContextPresenterContract } from "../contracts/presenters/CandidateContextPresenterContract";
 import type { CandidateContextRepositoryContract } from "../contracts/repositories/CandidateContextRepositoryContract";
@@ -58,4 +59,24 @@ export function presentCandidateContextEditor<TOutput, TProfiles>(
   presenter: CandidateContextPresenterContract<TOutput, TProfiles>,
 ) {
   return presenter.presentEditor(context);
+}
+
+// Load selector data and report each outcome through the supplied output boundary.
+export async function loadAnalysisProfiles(
+  repository: Pick<CandidateContextRepositoryContract, "list">,
+  userId: string,
+  output: AnalysisProfilesOutputContract,
+): Promise<void> {
+  output.presentLoading();
+
+  let contexts: CandidateContext[];
+  try {
+    contexts = await repository.list(userId);
+  } catch (error: unknown) {
+    output.presentFailure(error);
+    return;
+  }
+
+  // Presentation errors must not be misreported as retrieval failures.
+  output.presentContexts(contexts);
 }

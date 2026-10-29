@@ -18,6 +18,13 @@ export type CandidateContextValidationContract =
       errors: Partial<Record<keyof CandidateContextFormContract, string>>;
     };
 
+// Report profile-selector outcomes without exposing React or query-library state.
+export interface AnalysisProfilesOutputContract {
+  presentLoading(): void;
+  presentContexts(contexts: CandidateContext[]): void;
+  presentFailure(error: unknown): void;
+}
+
 // Define candidate context retrieval and primary-context preparation for consumers.
 export interface CandidateContextControllerContract<
   TOutput,
@@ -38,5 +45,9 @@ export interface CandidateContextControllerContract<
   getEditorValues(context: CandidateContext): CandidateContextFormContract;
   getProfiles(contexts: CandidateContext[]): TProfiles;
   listContexts(userId: string): Promise<CandidateContext[]>;
+  loadAnalysisProfiles(
+    userId: string,
+    output: AnalysisProfilesOutputContract,
+  ): Promise<void>;
   getPrimaryContext(contexts: CandidateContext[]): TOutput;
 }

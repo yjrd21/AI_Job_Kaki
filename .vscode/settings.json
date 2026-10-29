@@ -9,5 +9,11 @@
   "[css]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "[html]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "prettier.requireConfig": true,
-  "markdown.styles": [".vscode/markdown-preview.css"]
+  "markdown.styles": [
+    ".vscode/markdown-preview.css"
+  ],
+  "chat.tools.terminal.autoApprove": {
+    "/opt/homebrew/bin/python3.11": true,
+    "uuidgen": true
+  }
 }

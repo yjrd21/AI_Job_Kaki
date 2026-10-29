@@ -1,3 +1,10 @@
+import { useContext, useEffect, useMemo, useSyncExternalStore } from "react";
+import { AuthContainer } from "../../containers/AuthContainer";
+import { CandidateContextControllerContainer } from "../../containers/CandidateContextControllerContainer";
+import {
+  AnalysisProfilesPresenter,
+  AnalysisProfilesStore,
+} from "../../presenters/AnalysisProfilesPresenter";
 import { useAnalyseJobForm } from "../../hooks/useJobs";
 import { Link } from "react-router-dom";
 import { ArrowRight, FileText, Link2, Info, Sparkles } from "lucide-react";
@@ -7,8 +14,41 @@ import { Loading, ErrorNotice } from "../components/composed/Feedback";
 // Collect a candidate profile and job information for a new analysis.
 export function AnalyseJobPage() {
   // Bind the submission form state and event handlers supplied by its React hook.
-  const { profiles, submit, form, kind, onSubmit, onSubmissionTypeChange } =
+  const { submit, form, kind, onSubmit, onSubmissionTypeChange } =
     useAnalyseJobForm();
+
+  const profilesController = useContext(CandidateContextControllerContainer);
+  const auth = useContext(AuthContainer);
+  if (!profilesController)
+    throw new Error("CandidateContextControllerContainer provider missing");
+  if (!auth) throw new Error("AuthContainer provider missing");
+
+  const userId = auth.ready && auth.authenticated ? auth.userId : null;
+  // Keep the presenter/store local to this view and replace them when its owner changes.
+  const profilesBinding = useMemo(
+    () => ({
+      userId,
+      controller: profilesController,
+      presenter: new AnalysisProfilesPresenter(new AnalysisProfilesStore()),
+    }),
+    [userId, profilesController],
+  );
+  const presentation = useSyncExternalStore(
+    profilesBinding.presenter.store.subscribe,
+    profilesBinding.presenter.store.getSnapshot,
+    profilesBinding.presenter.store.getSnapshot,
+  );
+
+  // The view initiates input; use-case outcomes reach the store through the presenter.
+  useEffect(() => {
+    if (!profilesBinding.userId) return;
+    const request = profilesBinding.presenter.createRequest();
+    void profilesBinding.controller.loadAnalysisProfiles(
+      profilesBinding.userId,
+      request.output,
+    );
+    return request.cancel;
+  }, [profilesBinding]);
 
   return (
     <div className="max-w-4xl">
@@ -33,9 +73,9 @@ export function AnalyseJobPage() {
               </p>
             </div>
           </div>
-          {profiles.isLoading ? (
+          {presentation.profiles.isLoading ? (
             <Loading />
-          ) : profiles.data?.length ? (
+          ) : presentation.profiles.options.length ? (
             <>
               <label htmlFor="candidateContextId" className="field-label">
                 Candidate profile
@@ -46,10 +86,9 @@ export function AnalyseJobPage() {
                 {...form.register("candidateContextId")}
               >
                 <option value="">Select a profile</option>
-                {profiles.data.map((p) => (
+                {presentation.profiles.options.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.targetRoles.join(", ") || "Unnamed profile"} —{" "}
-                    {p.cvFileName || "No CV"}
+                    {p.label}
                   </option>
                 ))}
               </select>
@@ -160,7 +199,7 @@ export function AnalyseJobPage() {
           </p>
           <Button
             type="submit"
-            disabled={!profiles.data?.length || submit.isPending}
+            disabled={!presentation.profiles.options.length || submit.isPending}
           >
             {submit.isPending ? "Submitting…" : "Analyse this job"}{" "}
             <ArrowRight size={17} />

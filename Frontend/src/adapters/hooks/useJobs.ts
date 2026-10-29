@@ -1,7 +1,6 @@
 import { useContext, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useForm, type ResolverResult } from "react-hook-form";
-import { useContexts } from "./useContexts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { JobControllerContainer } from "../containers/JobControllerContainer";
 import { AuthContainer } from "../containers/AuthContainer";
@@ -143,9 +142,6 @@ export function useDeleteJob() {
 
 // Connect job form state, controller validation, URL defaults, and submission to React.
 export function useAnalyseJobForm() {
-  // Load candidate profiles available for this submission.
-  const profiles = useContexts();
-
   // Prepare the submission mutation and its loading and error state.
   const submit = useSubmitJob();
 
@@ -213,7 +209,7 @@ export function useAnalyseJobForm() {
     form.setValue("submissionType", type);
   };
 
-  return { profiles, submit, form, kind, onSubmit, onSubmissionTypeChange };
+  return { submit, form, kind, onSubmit, onSubmissionTypeChange };
 }
 
 // Connect history search, cached submissions, and confirmed deletion to React.

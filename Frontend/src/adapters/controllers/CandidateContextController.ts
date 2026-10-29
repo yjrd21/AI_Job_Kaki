@@ -5,6 +5,7 @@ import type { JobSubmission, JobAnalysis } from "../../domain/models/Job";
 import { z } from "zod";
 import { listFromLines } from "../views/utils/textUtils";
 import type {
+  AnalysisProfilesOutputContract,
   CandidateContextFormContract,
   CandidateContextValidationContract,
 } from "../../application/contracts/controllers/CandidateContextControllerContract";
@@ -96,6 +97,11 @@ export class CandidateContextController<
   // Retrieve the signed-in user's candidate contexts without changing list order.
   listContexts(userId: string) {
     return this.application.contexts.list(userId);
+  }
+
+  // Request selector data without managing React state or formatting the result.
+  loadAnalysisProfiles(userId: string, output: AnalysisProfilesOutputContract) {
+    return this.application.contexts.loadAnalysisProfiles(userId, output);
   }
 
   // Invoke primary-context selection and presentation for the retrieved list.

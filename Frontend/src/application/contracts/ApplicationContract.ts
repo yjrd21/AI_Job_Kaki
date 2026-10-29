@@ -1,5 +1,8 @@
 import type { OnboardingProgressContract } from "./controllers/OnboardingControllerContract";
-import type { CandidateContextFormContract } from "./controllers/CandidateContextControllerContract";
+import type {
+  CandidateContextFormContract,
+  AnalysisProfilesOutputContract,
+} from "./controllers/CandidateContextControllerContract";
 import type {
   JobAnalysis,
   JobSubmission,
@@ -53,6 +56,10 @@ export interface ApplicationContract<
     editor(context: CandidateContext): CandidateContextFormContract;
     primary(contexts: CandidateContext[]): TPrimaryContext;
     list(userId: string): Promise<CandidateContext[]>;
+    loadAnalysisProfiles(
+      userId: string,
+      output: AnalysisProfilesOutputContract,
+    ): Promise<void>;
     get(userId: string, id: string): Promise<CandidateContext>;
     save(
       userId: string,

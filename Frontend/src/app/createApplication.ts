@@ -33,6 +33,7 @@ import {
   presentCandidateContextEditor,
   getPrimaryCandidateContext,
   listCandidateContexts,
+  loadAnalysisProfiles,
   getCandidateContext,
   saveCandidateContext,
   deleteCandidateContext,
@@ -105,6 +106,8 @@ export function createApplication<
         getPrimaryCandidateContext(contexts, contextPresenter),
       list: (userId: string) =>
         listCandidateContexts(repositories.contexts, userId),
+      loadAnalysisProfiles: (userId, output) =>
+        loadAnalysisProfiles(repositories.contexts, userId, output),
       get: (userId: string, id: string) =>
         getCandidateContext(repositories.contexts, userId, id),
       save: (userId: string, input: CandidateContextInput, id?: string) =>
