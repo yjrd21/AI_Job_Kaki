@@ -27,22 +27,22 @@ public class AnalysisService {
     private final JobAnalysisRepositoryInterface repository;
     private final AiAnalysisClientInterface aiAnalysisClient;
     private final RabbitOperations rabbit;
-    private final JobContentResolver contentResolver;
-    private final AnalysisResultValidator resultValidator;
+    private final JobContentResolverInterface contentResolver;
+    private final AnalysisResultValidatorInterface resultValidatorService;
     private final MongoOperations mongo;
 
     public AnalysisService(
             JobAnalysisRepositoryInterface repository,
             AiAnalysisClientInterface aiAnalysisClient,
             RabbitOperations rabbit,
-            JobContentResolver contentResolver,
-            AnalysisResultValidator resultValidator,
+            JobContentResolverInterface contentResolver,
+            AnalysisResultValidatorInterface resultValidatorService,
             MongoOperations mongo) {
         this.repository = repository;
         this.aiAnalysisClient = aiAnalysisClient;
         this.rabbit = rabbit;
         this.contentResolver = contentResolver;
-        this.resultValidator = resultValidator;
+        this.resultValidatorService = resultValidatorService;
         this.mongo = mongo;
     }
 
@@ -74,7 +74,7 @@ public class AnalysisService {
             var resolved = new JobAnalysisRequest(request.jobSubmissionId(), request.userId(), "TEXT",
                     content, request.candidateContext());
             JobAnalysisResult result = aiAnalysisClient.getAnalysis(buildPrompt(resolved), request.candidateContext());
-            resultValidator.validate(result);
+            resultValidatorService.validate(result);
             System.out.println("Analysis result: " + result);
 
             analysis = new JobAnalysis();

@@ -23,9 +23,9 @@ class AnalysisServiceTest {
     private final AiAnalysisClientInterface openAI = mock(AiAnalysisClientInterface.class);
     private final RabbitOperations rabbit = mock(RabbitOperations.class);
     private final MongoOperations mongo = mock(MongoOperations.class);
-    private final JobContentResolver resolver = mock(JobContentResolver.class);
+    private final JobContentResolverInterface resolver = mock(JobContentResolverInterface.class);
     private final AnalysisService service = new AnalysisService(
-            repository, openAI, rabbit, resolver, new AnalysisResultValidator(), mongo);
+            repository, openAI, rabbit, resolver, new AnalysisResultValidatorService(), mongo);
     private final JobAnalysisRequest request = new JobAnalysisRequest(UUID.randomUUID(), UUID.randomUUID(), "URL",
             "https://www.linkedin.com/jobs/view/4459735599/", new JobAnalysisRequest.CandidateContext(
                     UUID.randomUUID(), UUID.randomUUID(), "cv.pdf", "application/pdf", "%PDF-test CV".getBytes(), List.of("Platform Engineer"),

@@ -8,6 +8,7 @@ import io.netty.channel.ChannelOption;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import reactor.netty.http.client.HttpClient;
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -30,12 +31,12 @@ import reactor.core.publisher.Mono;
  * and submission status updates are handled by other components.</p>
  */
 @Service
-public class JobContentResolver {
+public class JobContentResolverService implements JobContentResolverInterface {
     private static final Pattern JOB_PATH = Pattern.compile("/jobs/view/(?:[a-zA-Z0-9-]+-)?([0-9]+)/?");
     private static final String PASTE = " Please paste the full job description manually instead.";
     private final WebClient client;
 
-    public JobContentResolver(WebClient.Builder builder) {
+    public JobContentResolverService(WebClient.Builder builder) {
         // No redirects, cookies, login, or browser impersonation. Only a fixed public LinkedIn host.
         client = builder.clone()
                 .defaultHeaders(headers -> headers.clear())
@@ -48,14 +49,29 @@ public class JobContentResolver {
                 .build();
     }
 
+    @Override
     public String resolve(String submissionType, String context) {
-        if ("TEXT".equals(submissionType)) {
-            return validateContent(context);
+        switch (submissionType == null ? "" : submissionType) {
+            case "TEXT":
+                return resolveText(context);
+            case "URL":
+                return resolveUrl(context);
+            default:
+                throw new AnalysisException("INVALID_SUBMISSION_TYPE",
+                        "Choose a LinkedIn URL or a pasted job description.");
         }
-        if (!"URL".equals(submissionType)) {
-            throw new AnalysisException("INVALID_SUBMISSION_TYPE", "Choose a LinkedIn URL or a pasted job description.");
-        }
-        URI uri = linkedinJobUri(context);
+    }
+
+    private String resolveText(String context) {
+        return validateContent(context);
+    }
+
+    private String resolveUrl(String input) {
+        String html = fetchHtml(linkedinJobUri(input));
+        return extractJobContent(Jsoup.parse(html == null ? "" : html));
+    }
+
+    private String fetchHtml(URI uri) {
         String html;
         try {
             html = client.get().uri(uri)
@@ -73,12 +89,13 @@ public class JobContentResolver {
         } catch (Exception exception) {
             throw inaccessible();
         }
-        var document = Jsoup.parse(html == null ? "" : html);
-        String title = document.title().toLowerCase(Locale.ROOT);
-        if (title.contains("sign in") || title.contains("login") || title.contains("security verification")
-                || title.contains("authwall") || document.selectFirst("#captcha-internal, .challenge-page") != null) {
-            throw inaccessible();
-        }
+
+        return html;
+    }
+
+    private String extractJobContent(Document document) {
+        rejectInaccessiblePage(document);
+
         // Restrict extraction to the posting: never use the whole page or recommended jobs.
         Element description = document.selectFirst(".show-more-less-html__markup, .description__text");
         if (description == null) {
@@ -88,6 +105,14 @@ public class JobContentResolver {
         String content = validateContent(description.text());
         Element role = document.selectFirst("h1.top-card-layout__title, h1.topcard__title, h1");
         return (role == null ? "" : role.text() + "\n") + content;
+    }
+
+    private void rejectInaccessiblePage(Document document) {
+        String title = document.title().toLowerCase(Locale.ROOT);
+        if (title.contains("sign in") || title.contains("login") || title.contains("security verification")
+                || title.contains("authwall") || document.selectFirst("#captcha-internal, .challenge-page") != null) {
+            throw inaccessible();
+        }
     }
 
     private URI linkedinJobUri(String input) {

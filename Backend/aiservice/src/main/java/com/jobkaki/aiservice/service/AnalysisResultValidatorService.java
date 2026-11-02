@@ -6,13 +6,14 @@ import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 
 @Component
-public class AnalysisResultValidator {
+public class AnalysisResultValidatorService implements AnalysisResultValidatorInterface {
     private static final Pattern PLACEHOLDER = Pattern.compile(
             "(?i)(requirements? (?:retrievable|unavailable|unknown|not (?:available|provided|specified))"
             + "|(?:retrieve|access|extract).{0,40}(?:url|posting|requirements?)"
             + "|(?:url|posting|description).{0,40}(?:inaccessible|unavailable|not accessible|could not|cannot|couldn't)"
             + "|insufficient (?:job |public )?(?:information|details|content)|unable to (?:assess|determine|evaluate))");
 
+    @Override
     public void validate(JobAnalysisResult result) {
         if (result != null && !result.candidateInformationSufficient()) {
             throw new AnalysisException("CV_CONTENT_UNAVAILABLE",

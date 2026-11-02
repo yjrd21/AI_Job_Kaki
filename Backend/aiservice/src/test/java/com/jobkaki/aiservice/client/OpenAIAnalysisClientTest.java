@@ -1,7 +1,7 @@
 package com.jobkaki.aiservice.client;
 
 import com.jobkaki.aiservice.service.AnalysisException;
-import com.jobkaki.aiservice.service.AnalysisResultValidator;
+import com.jobkaki.aiservice.service.AnalysisResultValidatorService;
 import com.jobkaki.aiservice.model.CompanyReviews;
 import java.util.Map;
 import java.util.UUID;
@@ -87,7 +87,7 @@ class OpenAIAnalysisClientTest {
         assertTrue(result.jobInformationSufficient());
         assertNull(result.salaryRange());
         assertNull(result.roleOverview());
-        assertDoesNotThrow(() -> new AnalysisResultValidator().validate(result));
+        assertDoesNotThrow(() -> new AnalysisResultValidatorService().validate(result));
     }
 
     @Test
