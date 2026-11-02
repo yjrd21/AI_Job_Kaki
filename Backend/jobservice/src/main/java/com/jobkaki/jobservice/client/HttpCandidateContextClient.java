@@ -1,4 +1,4 @@
-package com.jobkaki.jobservice.service;
+package com.jobkaki.jobservice.client;
 
 import com.jobkaki.jobservice.dto.CandidateContextResponse;
 import java.util.UUID;
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 @Component
-public class HttpCandidateContextProvider implements CandidateContextProvider {
+public class HttpCandidateContextClient implements CandidateContextClient {
     @Value("${services.user.base-url}")
     private String baseUrl;
 

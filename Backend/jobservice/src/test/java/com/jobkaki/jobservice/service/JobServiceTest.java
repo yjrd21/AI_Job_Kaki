@@ -1,5 +1,6 @@
 package com.jobkaki.jobservice.service;
 
+import com.jobkaki.jobservice.client.CandidateContextClient;
 import com.jobkaki.jobservice.dto.JobSubmissionResponse;
 import com.jobkaki.jobservice.model.JobStatus;
 import com.jobkaki.jobservice.model.JobSubmission;
@@ -8,8 +9,9 @@ import com.jobkaki.jobservice.repository.JobSubmissionRepository;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.amqp.rabbit.core.RabbitOperations;
+import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.mockito.ArgumentCaptor;
@@ -29,8 +31,8 @@ class JobServiceTest {
         JobSubmissionRepository repository = mock(JobSubmissionRepository.class);
         JobService service = new JobService(
                 repository,
-                mock(CandidateContextProvider.class),
-                mock(RabbitTemplate.class), mock(MongoTemplate.class));
+                mock(CandidateContextClient.class),
+                mock(RabbitOperations.class), mock(MongoOperations.class), mock(MessageConverter.class));
         UUID userId = UUID.randomUUID();
         UUID candidateContextId = UUID.randomUUID();
         UUID jobAnalysisId = UUID.randomUUID();
@@ -64,8 +66,8 @@ class JobServiceTest {
     @Test
     void failureInformationIsReturnedThroughExistingApi() {
         var repository = mock(JobSubmissionRepository.class);
-        var service = new JobService(repository, mock(CandidateContextProvider.class),
-                mock(RabbitTemplate.class), mock(MongoTemplate.class));
+        var service = new JobService(repository, mock(CandidateContextClient.class),
+                mock(RabbitOperations.class), mock(MongoOperations.class), mock(MessageConverter.class));
         UUID userId = UUID.randomUUID();
         JobSubmission job = new JobSubmission();
         job.setId(UUID.randomUUID());
@@ -82,9 +84,9 @@ class JobServiceTest {
 
     @Test
     void statusUpdatesAtomicallyGuardTerminalStatesAndClearAnalysisIdOnFailure() {
-        var mongo = mock(MongoTemplate.class);
-        var service = new JobService(mock(JobSubmissionRepository.class), mock(CandidateContextProvider.class),
-                mock(RabbitTemplate.class), mongo);
+        var mongo = mock(MongoOperations.class);
+        var service = new JobService(mock(JobSubmissionRepository.class), mock(CandidateContextClient.class),
+                mock(RabbitOperations.class), mongo, mock(MessageConverter.class));
         when(mongo.updateFirst(any(Query.class), any(Update.class), eq(JobSubmission.class)))
                 .thenReturn(UpdateResult.acknowledged(1, 1L, null));
         UUID submissionId = UUID.randomUUID();
@@ -106,9 +108,9 @@ class JobServiceTest {
 
     @Test
     void duplicateAndOutOfOrderStatusMessagesDoNotRegressTerminalStates() {
-        var mongo = mock(MongoTemplate.class);
-        var service = new JobService(mock(JobSubmissionRepository.class), mock(CandidateContextProvider.class),
-                mock(RabbitTemplate.class), mongo);
+        var mongo = mock(MongoOperations.class);
+        var service = new JobService(mock(JobSubmissionRepository.class), mock(CandidateContextClient.class),
+                mock(RabbitOperations.class), mongo, mock(MessageConverter.class));
         var stored = new java.util.concurrent.atomic.AtomicReference<>(JobStatus.PENDING);
         var analysisId = new java.util.concurrent.atomic.AtomicReference<UUID>();
         when(mongo.updateFirst(any(Query.class), any(Update.class), eq(JobSubmission.class))).thenAnswer(call -> {
@@ -138,9 +140,9 @@ class JobServiceTest {
 
     @Test
     void rejectsCompletedStatusWithoutAnAnalysisId() {
-        var mongo = mock(MongoTemplate.class);
-        var service = new JobService(mock(JobSubmissionRepository.class), mock(CandidateContextProvider.class),
-                mock(RabbitTemplate.class), mongo);
+        var mongo = mock(MongoOperations.class);
+        var service = new JobService(mock(JobSubmissionRepository.class), mock(CandidateContextClient.class),
+                mock(RabbitOperations.class), mongo, mock(MessageConverter.class));
         service.updateStatus(new JobStatusEvent(UUID.randomUUID(), null, JobStatus.COMPLETED, null, null));
         verifyNoInteractions(mongo);
     }

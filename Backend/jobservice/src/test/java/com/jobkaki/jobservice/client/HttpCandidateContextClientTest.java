@@ -1,4 +1,4 @@
-package com.jobkaki.jobservice.service;
+package com.jobkaki.jobservice.client;
 
 import com.jobkaki.jobservice.dto.CandidateContextResponse;
 import com.sun.net.httpserver.HttpServer;
@@ -11,7 +11,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import tools.jackson.databind.ObjectMapper;
 import static org.junit.jupiter.api.Assertions.*;
 
-class HttpCandidateContextProviderTest {
+class HttpCandidateContextClientTest {
     @Test
     void fetchesSelectedProfileAndOriginalCvThroughInternalApi() throws Exception {
         UUID userId = UUID.randomUUID();
@@ -29,9 +29,9 @@ class HttpCandidateContextProviderTest {
         });
         server.start();
         try {
-            var provider = new HttpCandidateContextProvider();
-            ReflectionTestUtils.setField(provider, "baseUrl", "http://127.0.0.1:" + server.getAddress().getPort());
-            var result = provider.get(userId, contextId);
+            var client = new HttpCandidateContextClient();
+            ReflectionTestUtils.setField(client, "baseUrl", "http://127.0.0.1:" + server.getAddress().getPort());
+            var result = client.get(userId, contextId);
             assertEquals(contextId, result.id());
             assertEquals(userId, result.userId());
             assertArrayEquals(file, result.cvFile());

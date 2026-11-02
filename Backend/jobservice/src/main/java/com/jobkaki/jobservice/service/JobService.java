@@ -8,6 +8,7 @@ import com.jobkaki.jobservice.dto.JobSubmissionResponse;
 import com.jobkaki.jobservice.model.JobStatus;
 import com.jobkaki.jobservice.model.JobSubmission;
 import com.jobkaki.jobservice.repository.JobSubmissionRepository;
+import com.jobkaki.jobservice.client.CandidateContextClient;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Arrays;
@@ -16,12 +17,13 @@ import java.nio.charset.StandardCharsets;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.support.converter.MessageConversionException;
+import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.web.client.RestClientException;
 import java.util.UUID;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.rabbit.core.RabbitOperations;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -35,19 +37,22 @@ public class JobService {
         private static final int MAX_CV_BYTES = 5 * 1024 * 1024;
         private static final int MAX_REQUEST_BYTES = 8 * 1024 * 1024;
         private final JobSubmissionRepository repository;
-        private final CandidateContextProvider candidateContextProvider;
-        private final RabbitTemplate rabbit;
-        private final MongoTemplate mongo;
+        private final CandidateContextClient candidateContextClient;
+        private final RabbitOperations rabbit;
+        private final MongoOperations mongo;
+        private final MessageConverter messageConverter;
 
         public JobService(
                 JobSubmissionRepository repository,
-                CandidateContextProvider candidateContextProvider,
-                RabbitTemplate rabbit,
-                MongoTemplate mongo) {
+                CandidateContextClient candidateContextClient,
+                RabbitOperations rabbit,
+                MongoOperations mongo,
+                MessageConverter messageConverter) {
             this.repository = repository;
-            this.candidateContextProvider = candidateContextProvider;
+            this.candidateContextClient = candidateContextClient;
             this.rabbit = rabbit;
             this.mongo = mongo;
+            this.messageConverter = messageConverter;
         }
 
         @Value("${rabbitmq.exchange.name}")
@@ -80,12 +85,12 @@ public class JobService {
 
                 Message message;
                 try {
-                        CandidateContextResponse context = candidateContextProvider.get(userId, request.candidateContextId());
+                        CandidateContextResponse context = candidateContextClient.get(userId, request.candidateContextId());
                         validateCandidate(context, userId, request.candidateContextId());
                         var analysisRequest = new JobAnalysisRequest(job.getId(), userId, job.getSubmissionType(),
                                         job.getJobContext(), context);
                         // Serialize once with the actual Rabbit converter so the bound includes base64 and all metadata.
-                        message = rabbit.getMessageConverter().toMessage(analysisRequest, new MessageProperties());
+                        message = messageConverter.toMessage(analysisRequest, new MessageProperties());
                         if (message.getBody().length > MAX_REQUEST_BYTES) {
                                 throw new SubmissionFailure("ANALYSIS_REQUEST_TOO_LARGE",
                                                 "The analysis request is too large. Use a smaller CV or a shorter job description.");
