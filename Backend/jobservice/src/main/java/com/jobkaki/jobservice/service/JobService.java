@@ -7,8 +7,8 @@ import com.jobkaki.jobservice.dto.JobSubmissionRequest;
 import com.jobkaki.jobservice.dto.JobSubmissionResponse;
 import com.jobkaki.jobservice.model.JobStatus;
 import com.jobkaki.jobservice.model.JobSubmission;
-import com.jobkaki.jobservice.repository.JobSubmissionRepository;
-import com.jobkaki.jobservice.client.CandidateContextClient;
+import com.jobkaki.jobservice.repository.JobSubmissionRepositoryInterface;
+import com.jobkaki.jobservice.client.CandidateContextClientInterface;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Arrays;
@@ -36,15 +36,15 @@ import lombok.extern.slf4j.Slf4j;
 public class JobService {
         private static final int MAX_CV_BYTES = 5 * 1024 * 1024;
         private static final int MAX_REQUEST_BYTES = 8 * 1024 * 1024;
-        private final JobSubmissionRepository repository;
-        private final CandidateContextClient candidateContextClient;
+        private final JobSubmissionRepositoryInterface repository;
+        private final CandidateContextClientInterface candidateContextClient;
         private final RabbitOperations rabbit;
         private final MongoOperations mongo;
         private final MessageConverter messageConverter;
 
         public JobService(
-                JobSubmissionRepository repository,
-                CandidateContextClient candidateContextClient,
+                JobSubmissionRepositoryInterface repository,
+                CandidateContextClientInterface candidateContextClient,
                 RabbitOperations rabbit,
                 MongoOperations mongo,
                 MessageConverter messageConverter) {

@@ -101,5 +101,4 @@ RABBITMQ_ANALYSIS_ROUTING_KEY=job.analysis
 RABBITMQ_STATUS_ROUTING_KEY=job.status
 ```
 
-`OPENAI_API_MODEL` must support the document-input and structured-output request used by `OpenAIService`. Do not place the provider key in frontend configuration. The broker must accept messages up to the application's 8 MiB limit.
-
+`OPENAI_API_MODEL` must support the document-input and structured-output request used by `OpenAIAnalysisClient`. Do not place the provider key in frontend configuration. The broker must accept messages up to the application's 8 MiB limit.

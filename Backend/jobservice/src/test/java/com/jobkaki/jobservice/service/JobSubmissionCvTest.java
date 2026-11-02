@@ -1,9 +1,9 @@
 package com.jobkaki.jobservice.service;
 
-import com.jobkaki.jobservice.client.CandidateContextClient;
+import com.jobkaki.jobservice.client.CandidateContextClientInterface;
 import com.jobkaki.jobservice.dto.*;
 import com.jobkaki.jobservice.model.*;
-import com.jobkaki.jobservice.repository.JobSubmissionRepository;
+import com.jobkaki.jobservice.repository.JobSubmissionRepositoryInterface;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
@@ -22,8 +22,8 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class JobSubmissionCvTest {
-    private final JobSubmissionRepository repository = mock(JobSubmissionRepository.class);
-    private final CandidateContextClient client = mock(CandidateContextClient.class);
+    private final JobSubmissionRepositoryInterface repository = mock(JobSubmissionRepositoryInterface.class);
+    private final CandidateContextClientInterface client = mock(CandidateContextClientInterface.class);
     private final RabbitOperations rabbit = mock(RabbitOperations.class);
     private final MessageConverter messageConverter = new JacksonJsonMessageConverter();
     private final JobService service = new JobService(

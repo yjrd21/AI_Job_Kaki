@@ -1,8 +1,12 @@
-package com.jobkaki.aiservice.service;
+package com.jobkaki.aiservice.client;
 
+import com.jobkaki.aiservice.service.AnalysisException;
+import com.jobkaki.aiservice.service.AnalysisResultValidator;
+import com.jobkaki.aiservice.model.CompanyReviews;
 import java.util.Map;
 import java.util.UUID;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.net.InetSocketAddress;
@@ -19,18 +23,56 @@ import reactor.core.publisher.Mono;
 import tools.jackson.databind.ObjectMapper;
 import static org.junit.jupiter.api.Assertions.*;
 
-class OpenAIServiceTest {
+class OpenAIAnalysisClientTest {
     private final ObjectMapper mapper = new ObjectMapper();
+    private static final String GLASSDOOR_SOURCE = "https://www.glassdoor.sg/Reviews/Example-Reviews-E123.htm";
     private final JobAnalysisRequest.CandidateContext candidate = new JobAnalysisRequest.CandidateContext(
             UUID.randomUUID(), UUID.randomUUID(), "cv.pdf", "application/pdf", "%PDF-test CV".getBytes(StandardCharsets.UTF_8),
             List.of("Engineer"), List.of(), List.of(), null, null);
 
-    private OpenAIService service(String status, String answer) {
+    private OpenAIAnalysisClient service(String status, String answer) {
         String response = mapper.writeValueAsString(Map.of("status", status,
                 "output", List.of(Map.of("content", List.of(Map.of("type", "output_text", "text", answer))))));
-        return new OpenAIService(WebClient.builder().exchangeFunction(request -> Mono.just(
+        return new OpenAIAnalysisClient(WebClient.builder().exchangeFunction(request -> Mono.just(
                 ClientResponse.create(HttpStatus.OK).header("Content-Type", "application/json").body(response).build())),
                 "test-key", "https://example.test", "test-model", mapper);
+    }
+
+    private Map<String, Object> concern(String url) {
+        return Map.of("summary", "A reviewer reported long working hours in 2025; team relevance is unclear.",
+                "sourceUrl", url, "scope", "COMPANY");
+    }
+
+    private CompanyReviews reviewResult(String reviewStatus, List<Map<String, Object>> concerns,
+            List<String> sourceUrls, boolean searchCompleted, List<Map<String, Object>> annotations) {
+        Map<String, Object> analysis = new LinkedHashMap<>();
+        analysis.put("jobInformationSufficient", true);
+        analysis.put("candidateInformationSufficient", true);
+        analysis.put("roleOverview", null);
+        analysis.put("roleTitle", "Engineer");
+        analysis.put("applicationDeadline", null);
+        analysis.put("salaryRange", null);
+        analysis.put("redFlags", List.of());
+        analysis.put("companyReviews", Map.of("status", reviewStatus, "concerns", concerns));
+        analysis.put("requirements", List.of());
+        analysis.put("matchSummary", "The candidate's experience needs clarification.");
+        analysis.put("questionsToClarify", List.of());
+
+        String answer = mapper.writeValueAsString(analysis);
+        Map<String, Object> outputText = Map.of(
+                "type", "output_text", "text", answer, "annotations", annotations);
+        Map<String, Object> search = Map.of(
+                "type", "web_search_call",
+                "status", searchCompleted ? "completed" : "failed",
+                "action", Map.of("sources", sourceUrls.stream().map(url -> Map.of("url", url)).toList()));
+        Map<String, Object> message = Map.of("type", "message", "content", List.of(outputText));
+        String providerResponse = mapper.writeValueAsString(Map.of(
+                "status", "completed", "output", List.of(search, message)));
+        var client = new OpenAIAnalysisClient(WebClient.builder().exchangeFunction(request -> Mono.just(
+                ClientResponse.create(HttpStatus.OK).header("Content-Type", "application/json")
+                        .body(providerResponse).build())),
+                "test-key", "https://example.test", "test-model", mapper);
+        return client.getAnalysis("Evaluate and research", candidate).companyReviews();
     }
 
     @Test
@@ -78,7 +120,7 @@ class OpenAIServiceTest {
                         Map.of("sources", List.of(Map.of("url", url)))),
                 Map.of("type", "message", "content", List.of(Map.of("type", "output_text", "text", answer))))));
         AtomicInteger requests = new AtomicInteger();
-        var service = new OpenAIService(WebClient.builder().exchangeFunction(request -> {
+        var service = new OpenAIAnalysisClient(WebClient.builder().exchangeFunction(request -> {
             requests.incrementAndGet();
             return Mono.just(ClientResponse.create(HttpStatus.OK).header("Content-Type", "application/json")
                     .body(response).build());
@@ -90,6 +132,47 @@ class OpenAIServiceTest {
         assertEquals("Candidate has relevant Java experience.", result.matchSummary());
         assertEquals("MET", result.requirements().get(0).getStatus().name());
         assertEquals(url, result.companyReviews().concerns().get(0).sourceUrl());
+    }
+
+    @Test
+    void onlyKeepsConcernsSupportedByActualGlassdoorSearchUrls() {
+        var result = reviewResult("FOUND",
+                List.of(concern(GLASSDOOR_SOURCE), concern("https://www.glassdoor.sg/Reviews/invented.htm")),
+                List.of(GLASSDOOR_SOURCE), true, List.of());
+        assertEquals(CompanyReviews.Status.FOUND, result.status());
+        assertEquals(1, result.concerns().size());
+        assertEquals(GLASSDOOR_SOURCE, result.concerns().get(0).sourceUrl());
+    }
+
+    @Test
+    void rejectsSpoofedUnsafeAndNonGlassdoorReviewSources() {
+        for (String url : List.of("https://glassdoor.com.evil.test/review", "https://evilglassdoor.com/review",
+                "javascript:alert(1)", "http://glassdoor.com/review", "https://user@glassdoor.com/review",
+                "https://example.test/Reviews/review", "not a url")) {
+            var result = reviewResult("FOUND", List.of(concern(url)), List.of(url), true, List.of());
+            assertEquals(CompanyReviews.Status.UNAVAILABLE, result.status(), url);
+        }
+    }
+
+    @Test
+    void requiresCompletedSearchAndEvidenceForNoFindings() {
+        assertEquals(CompanyReviews.Status.UNAVAILABLE,
+                reviewResult("FOUND", List.of(concern(GLASSDOOR_SOURCE)), List.of(GLASSDOOR_SOURCE), false, List.of())
+                        .status());
+        assertEquals(CompanyReviews.Status.UNAVAILABLE,
+                reviewResult("NO_RELEVANT_FINDINGS", List.of(), List.of(), true, List.of()).status());
+        assertEquals(CompanyReviews.Status.NO_RELEVANT_FINDINGS,
+                reviewResult("NO_RELEVANT_FINDINGS", List.of(), List.of(GLASSDOOR_SOURCE), true, List.of()).status());
+        assertEquals(CompanyReviews.Status.UNAVAILABLE,
+                reviewResult("UNAVAILABLE", List.of(), List.of(GLASSDOOR_SOURCE), true, List.of()).status());
+    }
+
+    @Test
+    void acceptsValidGlassdoorCitationAnnotationsAsEvidence() {
+        var annotations = List.of(Map.<String, Object>of("type", "url_citation", "url", GLASSDOOR_SOURCE));
+        var result = reviewResult("FOUND", List.of(concern(GLASSDOOR_SOURCE)), List.of(), true, annotations);
+        assertEquals(CompanyReviews.Status.FOUND, result.status());
+        assertEquals(GLASSDOOR_SOURCE, result.concerns().get(0).sourceUrl());
     }
 
     @Test
@@ -108,7 +191,7 @@ class OpenAIServiceTest {
 
     @Test
     void upstreamErrorsHaveSafePublicCodesAndMessages() {
-        var service = new OpenAIService(WebClient.builder().exchangeFunction(request -> Mono.just(
+        var service = new OpenAIAnalysisClient(WebClient.builder().exchangeFunction(request -> Mono.just(
                 ClientResponse.create(HttpStatus.TOO_MANY_REQUESTS).body("private response").build())),
                 "test-key", "https://example.test", "test-model", mapper);
         var error = assertThrows(AnalysisException.class, () -> service.getAnalysis("Evaluate description", candidate));
@@ -118,7 +201,7 @@ class OpenAIServiceTest {
 
     @Test
     void missingCvNeverCallsTheProvider() {
-        var service = new OpenAIService(WebClient.builder().exchangeFunction(request -> {
+        var service = new OpenAIAnalysisClient(WebClient.builder().exchangeFunction(request -> {
             throw new AssertionError("Missing CV must not reach the provider");
         }), "test-key", "https://example.test", "test-model", mapper);
         assertEquals("CV_MISSING", assertThrows(AnalysisException.class,
@@ -141,7 +224,7 @@ class OpenAIServiceTest {
         });
         server.start();
         try {
-            var service = new OpenAIService(WebClient.builder(), "test-key",
+            var service = new OpenAIAnalysisClient(WebClient.builder(), "test-key",
                     "http://127.0.0.1:" + server.getAddress().getPort(), "test-model", mapper);
             for (String[] format : new String[][] {{"cv.pdf", "application/pdf"}, {"cv.doc", "application/msword"},
                     {"cv.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}}) {

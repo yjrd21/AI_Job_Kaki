@@ -1,5 +1,6 @@
 package com.jobkaki.aiservice.service;
 
+import com.jobkaki.aiservice.client.AiAnalysisClientInterface;
 import com.jobkaki.aiservice.dto.JobAnalysisRequest;
 import com.jobkaki.aiservice.dto.JobAnalysisResult;
 import com.jobkaki.aiservice.dto.JobAnalysisResponse;
@@ -7,15 +8,15 @@ import com.jobkaki.aiservice.dto.JobStatusEvent;
 import com.jobkaki.aiservice.model.JobAnalysis;
 import com.jobkaki.aiservice.model.AnalysisFailure;
 import com.jobkaki.aiservice.model.JobStatus;
-import com.jobkaki.aiservice.repository.JobAnalysisRepository;
+import com.jobkaki.aiservice.repository.JobAnalysisRepositoryInterface;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.rabbit.core.RabbitOperations;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import lombok.extern.slf4j.Slf4j;
@@ -23,22 +24,22 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 public class AnalysisService {
-    private final JobAnalysisRepository repository;
-    private final OpenAIService openAI;
-    private final RabbitTemplate rabbit;
+    private final JobAnalysisRepositoryInterface repository;
+    private final AiAnalysisClientInterface aiAnalysisClient;
+    private final RabbitOperations rabbit;
     private final JobContentResolver contentResolver;
     private final AnalysisResultValidator resultValidator;
-    private final MongoTemplate mongo;
+    private final MongoOperations mongo;
 
     public AnalysisService(
-            JobAnalysisRepository repository,
-            OpenAIService openAI,
-            RabbitTemplate rabbit,
+            JobAnalysisRepositoryInterface repository,
+            AiAnalysisClientInterface aiAnalysisClient,
+            RabbitOperations rabbit,
             JobContentResolver contentResolver,
             AnalysisResultValidator resultValidator,
-            MongoTemplate mongo) {
+            MongoOperations mongo) {
         this.repository = repository;
-        this.openAI = openAI;
+        this.aiAnalysisClient = aiAnalysisClient;
         this.rabbit = rabbit;
         this.contentResolver = contentResolver;
         this.resultValidator = resultValidator;
@@ -72,7 +73,7 @@ public class AnalysisService {
             String content = contentResolver.resolve(request.submissionType(), request.jobContext());
             var resolved = new JobAnalysisRequest(request.jobSubmissionId(), request.userId(), "TEXT",
                     content, request.candidateContext());
-            JobAnalysisResult result = openAI.getAnalysis(buildPrompt(resolved), request.candidateContext());
+            JobAnalysisResult result = aiAnalysisClient.getAnalysis(buildPrompt(resolved), request.candidateContext());
             resultValidator.validate(result);
             System.out.println("Analysis result: " + result);
 
