@@ -1,29 +1,31 @@
 package com.jobkaki.aiservice;
 
+import com.jobkaki.aiservice.client.AiAnalysisClientInterface;
 import com.jobkaki.aiservice.dto.*;
 import com.jobkaki.aiservice.model.*;
-import com.jobkaki.aiservice.repository.JobAnalysisRepository;
+import com.jobkaki.aiservice.repository.JobAnalysisRepositoryInterface;
 import com.jobkaki.aiservice.service.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.rabbit.core.RabbitOperations;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.test.util.ReflectionTestUtils;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class AnalysisServiceTest {
-    private final JobAnalysisRepository repository = mock(JobAnalysisRepository.class);
-    private final OpenAIService openAI = mock(OpenAIService.class);
-    private final RabbitTemplate rabbit = mock(RabbitTemplate.class);
-    private final MongoTemplate mongo = mock(MongoTemplate.class);
-    private final JobContentResolver resolver = mock(JobContentResolver.class);
-    private final AnalysisService service = new AnalysisService(repository, openAI, rabbit, resolver, new AnalysisResultValidator(), mongo);
+    private final JobAnalysisRepositoryInterface repository = mock(JobAnalysisRepositoryInterface.class);
+    private final AiAnalysisClientInterface openAI = mock(AiAnalysisClientInterface.class);
+    private final RabbitOperations rabbit = mock(RabbitOperations.class);
+    private final MongoOperations mongo = mock(MongoOperations.class);
+    private final JobContentResolverInterface resolver = mock(JobContentResolverInterface.class);
+    private final AnalysisService service = new AnalysisService(
+            repository, openAI, rabbit, resolver, new AnalysisResultValidatorService(), mongo);
     private final JobAnalysisRequest request = new JobAnalysisRequest(UUID.randomUUID(), UUID.randomUUID(), "URL",
             "https://www.linkedin.com/jobs/view/4459735599/", new JobAnalysisRequest.CandidateContext(
                     UUID.randomUUID(), UUID.randomUUID(), "cv.pdf", "application/pdf", "%PDF-test CV".getBytes(), List.of("Platform Engineer"),

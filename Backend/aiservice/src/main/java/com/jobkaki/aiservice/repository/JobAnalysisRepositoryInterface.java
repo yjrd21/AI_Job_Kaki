@@ -6,7 +6,7 @@ import java.util.UUID;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 // Provides persistence operations for completed job analyses.
-public interface JobAnalysisRepository
+public interface JobAnalysisRepositoryInterface
         extends MongoRepository<JobAnalysis, UUID> {
 
     // Return the analysis associated with a job submission.

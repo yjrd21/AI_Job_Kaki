@@ -12,8 +12,8 @@ import static org.mockito.Mockito.when;
 import com.jobkaki.userservice.dto.CreateUserRequest;
 import com.jobkaki.userservice.dto.UserResponse;
 import com.jobkaki.userservice.model.User;
-import com.jobkaki.userservice.repository.CandidateContextRepository;
-import com.jobkaki.userservice.repository.UserRepository;
+import com.jobkaki.userservice.repository.CandidateContextRepositoryInterface;
+import com.jobkaki.userservice.repository.UserRepositoryInterface;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -27,10 +27,10 @@ import org.springframework.web.server.ResponseStatusException;
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
     @Mock
-    private UserRepository userRepository;
+    private UserRepositoryInterface userRepository;
 
     @Mock
-    private CandidateContextRepository contextRepository;
+    private CandidateContextRepositoryInterface contextRepository;
 
     @InjectMocks
     private UserService userService;

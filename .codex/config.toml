@@ -1,6 +1,0 @@
-# Definitions expose roles; they do not schedule work or enable autonomous runs.
-# Permission, provider and model settings remain with the parent session.
-
-[agents]
-enabled = true
-max_concurrent_threads_per_session = 3

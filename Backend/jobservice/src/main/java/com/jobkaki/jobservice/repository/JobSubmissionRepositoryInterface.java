@@ -7,7 +7,7 @@ import java.util.UUID;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 // Provides persistence operations for submitted jobs.
-public interface JobSubmissionRepository extends MongoRepository<JobSubmission, UUID> {
+public interface JobSubmissionRepositoryInterface extends MongoRepository<JobSubmission, UUID> {
 
         // Return all submitted jobs belonging to a user.
         List<JobSubmission> findByUserId(UUID userId);

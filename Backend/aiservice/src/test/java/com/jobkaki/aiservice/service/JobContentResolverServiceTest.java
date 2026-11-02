@@ -8,13 +8,13 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import static org.junit.jupiter.api.Assertions.*;
 
-class JobContentResolverTest {
+class JobContentResolverServiceTest {
     static final String DESCRIPTION = "As a platform engineer you will design and maintain Java services, collaborate with product teams, "
             + "review technical designs, and improve production reliability. Requirements include five years of Java experience, "
             + "knowledge of Spring Boot and PostgreSQL, strong communication skills, and experience operating distributed systems.";
 
-    private JobContentResolver resolver(HttpStatus status, String body) {
-        return new JobContentResolver(WebClient.builder().exchangeFunction(request -> {
+    private JobContentResolverService resolver(HttpStatus status, String body) {
+        return new JobContentResolverService(WebClient.builder().exchangeFunction(request -> {
             assertEquals("https://www.linkedin.com/jobs/view/4459735599/", request.url().toString());
             return Mono.just(ClientResponse.create(status).header("Content-Type", "text/html").body(body).build());
         }));
@@ -67,7 +67,7 @@ class JobContentResolverTest {
     @Test
     void invalidDestinationsNeverMakeANetworkRequest() {
         AtomicInteger calls = new AtomicInteger();
-        JobContentResolver resolver = new JobContentResolver(WebClient.builder().exchangeFunction(request -> {
+        JobContentResolverService resolver = new JobContentResolverService(WebClient.builder().exchangeFunction(request -> {
             calls.incrementAndGet();
             return Mono.error(new AssertionError("Must not fetch this destination"));
         }));
@@ -83,7 +83,7 @@ class JobContentResolverTest {
 
     @Test
     void transportFailureFailsGracefully() {
-        var resolver = new JobContentResolver(WebClient.builder().exchangeFunction(request ->
+        var resolver = new JobContentResolverService(WebClient.builder().exchangeFunction(request ->
                 Mono.error(new IllegalStateException("Connection timed out"))));
         assertEquals("JOB_SOURCE_INACCESSIBLE", assertThrows(AnalysisException.class,
                 () -> resolver.resolve("URL", "https://www.linkedin.com/jobs/view/4459735599/")).code());
@@ -91,7 +91,7 @@ class JobContentResolverTest {
 
     @Test
     void validatesPastedTextWithoutFetchingAndDoesNotTruncateLongInput() {
-        var resolver = new JobContentResolver(WebClient.builder().exchangeFunction(request -> {
+        var resolver = new JobContentResolverService(WebClient.builder().exchangeFunction(request -> {
             throw new AssertionError("TEXT must not fetch a URL");
         }));
         assertEquals(DESCRIPTION, resolver.resolve("TEXT", DESCRIPTION));
@@ -99,6 +99,15 @@ class JobContentResolverTest {
                 () -> resolver.resolve("TEXT", "Engineer wanted")).code());
         assertEquals("JOB_CONTENT_TOO_LONG", assertThrows(AnalysisException.class,
                 () -> resolver.resolve("TEXT", DESCRIPTION.repeat(200))).code());
+    }
+
+    @Test
+    void rejectsUnsupportedOrNullSubmissionTypes() {
+        var resolver = new JobContentResolverService(WebClient.builder());
+        for (String submissionType : new String[] {null, "HTML"}) {
+            assertEquals("INVALID_SUBMISSION_TYPE", assertThrows(AnalysisException.class,
+                    () -> resolver.resolve(submissionType, DESCRIPTION)).code());
+        }
     }
 
     @Test
@@ -111,7 +120,7 @@ class JobContentResolverTest {
                     return Mono.just(ClientResponse.create(HttpStatus.OK).header("Content-Type", "text/html")
                             .body("<div class='description__text'>" + DESCRIPTION + "</div>").build());
                 });
-        assertDoesNotThrow(() -> new JobContentResolver(builder).resolve("URL",
+        assertDoesNotThrow(() -> new JobContentResolverService(builder).resolve("URL",
                 "https://www.linkedin.com/jobs/view/4459735599/"));
     }
 }

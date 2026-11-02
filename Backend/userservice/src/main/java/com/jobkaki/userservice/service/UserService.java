@@ -17,12 +17,12 @@ import org.springframework.web.server.ResponseStatusException;
 public class UserService {
     private static final int MAX_CV_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
-    private final UserRepository userRepository;
-    private final CandidateContextRepository contextRepository;
+    private final UserRepositoryInterface userRepository;
+    private final CandidateContextRepositoryInterface contextRepository;
 
     public UserService(
-            UserRepository userRepository,
-            CandidateContextRepository contextRepository) {
+            UserRepositoryInterface userRepository,
+            CandidateContextRepositoryInterface contextRepository) {
         this.userRepository = userRepository;
         this.contextRepository = contextRepository;
     }

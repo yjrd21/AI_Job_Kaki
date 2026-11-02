@@ -1,28 +1,34 @@
-package com.jobkaki.aiservice.service;
+package com.jobkaki.aiservice.client;
 
+import com.jobkaki.aiservice.service.AnalysisException;
 import com.jobkaki.aiservice.dto.JobAnalysisResult;
 import com.jobkaki.aiservice.dto.JobAnalysisRequest.CandidateContext;
+import com.jobkaki.aiservice.model.CompanyReviews;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.Base64;
+import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-@Service
+@Component
 @Slf4j
-public class OpenAIService {
+public class OpenAIAnalysisClient implements AiAnalysisClientInterface {
 
     private final WebClient webClient;
     private final String model;
     private final ObjectMapper objectMapper;
 
-    public OpenAIService(
+    public OpenAIAnalysisClient(
         WebClient.Builder webClientBuilder,
         @Value("${openai.api-key}") String apiKey,
         @Value("${openai.base-url}") String baseUrl,
@@ -178,6 +184,78 @@ public class OpenAIService {
         }
 
         return null;
+    }
+
+    private static final class CompanyReviewEvidenceValidator {
+        private static final List<String> DOMAINS = List.of("glassdoor.com", "glassdoor.sg", "glassdoor.co.uk");
+
+        private static CompanyReviews validate(JsonNode response, CompanyReviews reviews) {
+            if (response == null || !"completed".equals(response.path("status").asString())) {
+                return CompanyReviews.unavailable();
+            }
+            boolean searched = false;
+            Set<String> sources = new HashSet<>();
+            for (JsonNode item : response.path("output")) {
+                if ("web_search_call".equals(item.path("type").asString())
+                        && "completed".equals(item.path("status").asString())) {
+                    searched = true;
+                    for (JsonNode source : item.path("action").path("sources")) {
+                        addSource(sources, source.path("url").asString());
+                    }
+                }
+                for (JsonNode content : item.path("content")) {
+                    if ("output_text".equals(content.path("type").asString())) {
+                        for (JsonNode annotation : content.path("annotations")) {
+                            if ("url_citation".equals(annotation.path("type").asString())) {
+                                addSource(sources, annotation.path("url").asString());
+                            }
+                        }
+                    }
+                }
+            }
+            if (!searched) return CompanyReviews.unavailable();
+            if (reviews == null || reviews.status() == null || reviews.concerns() == null) {
+                return CompanyReviews.unavailable();
+            }
+            if (reviews.status() != CompanyReviews.Status.FOUND) {
+                if (reviews.status() == CompanyReviews.Status.NO_RELEVANT_FINDINGS && sources.isEmpty()) {
+                    return CompanyReviews.unavailable();
+                }
+                return new CompanyReviews(reviews.status(), List.of());
+            }
+            var supported = reviews.concerns().stream()
+                    .filter(concern -> concern != null && concern.summary() != null && !concern.summary().isBlank()
+                            && concern.scope() != null && sources.contains(concern.sourceUrl()))
+                    .toList();
+            return supported.isEmpty() ? CompanyReviews.unavailable()
+                    : new CompanyReviews(CompanyReviews.Status.FOUND, supported);
+        }
+
+        private static void addSource(Set<String> sources, String url) {
+            if (url == null) return;
+            try {
+                URI uri = URI.create(url);
+                String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
+                if ("https".equalsIgnoreCase(uri.getScheme()) && uri.getUserInfo() == null
+                        && DOMAINS.stream().anyMatch(domain -> host.equals(domain) || host.endsWith("." + domain))) {
+                    sources.add(url);
+                }
+            } catch (IllegalArgumentException ignored) {
+                // Malformed provider sources cannot support a displayed concern.
+            }
+        }
+
+        private static Map<String, Object> schema() {
+            var concern = Map.of("type", "object", "properties", Map.of(
+                    "summary", Map.of("type", "string"),
+                    "sourceUrl", Map.of("type", "string"),
+                    "scope", Map.of("type", "string", "enum", List.of("COMPANY", "ROLE"))),
+                    "required", List.of("summary", "sourceUrl", "scope"), "additionalProperties", false);
+            return Map.of("type", "object", "properties", Map.of(
+                            "status", Map.of("type", "string", "enum", List.of("FOUND", "NO_RELEVANT_FINDINGS", "UNAVAILABLE")),
+                            "concerns", Map.of("type", "array", "items", concern)),
+                            "required", List.of("status", "concerns"), "additionalProperties", false);
+        }
     }
 
 }
