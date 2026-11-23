@@ -10,8 +10,8 @@ import { AccountControllerContainer } from "../../adapters/containers/AccountCon
 import { ApplicationContainer } from "../../adapters/containers/ApplicationContainer";
 import { AuthContainerProvider } from "./AuthContainerProvider";
 import { JobControllerContainer } from "../../adapters/containers/JobControllerContainer";
-import { QueryContainerProvider } from "./QueryContainerProvider";
 import { createQueryClient } from "../clients/createQueryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
 
 // Describe the constructed dependencies required to assemble the React providers.
 type AppContainerProviderProps = {
@@ -44,7 +44,7 @@ export function AppContainerProvider({
   const [queryClient] = useState(createQueryClient);
 
   return (
-    <QueryContainerProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
       <ApplicationContainer.Provider value={application}>
         <AccountControllerContainer.Provider value={accountController}>
           <JobControllerContainer.Provider value={jobController}>
@@ -62,6 +62,6 @@ export function AppContainerProvider({
           </JobControllerContainer.Provider>
         </AccountControllerContainer.Provider>
       </ApplicationContainer.Provider>
-    </QueryContainerProvider>
+    </QueryClientProvider>
   );
 }
