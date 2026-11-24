@@ -2,11 +2,16 @@ import { ShieldCheck, Info, Save } from "lucide-react";
 import { useAccountForm } from "../../hooks/useAccount";
 import { Button } from "../components/primitives/Button";
 import { ErrorNotice, Loading } from "../components/composed/Feedback";
+import type { AccountController } from "../../controllers/AccountController";
 
 // Display editable account details and the result of saving changes.
-export function AccountPage() {
+export function AccountPage({
+  accountController,
+}: {
+  accountController: AccountController;
+}) {
   // Bind the account form state and event handler supplied by its React hook.
-  const { query, form, save, onSubmit } = useAccountForm();
+  const { query, form, save, onSubmit } = useAccountForm(accountController);
 
   return (
     <div className="max-w-3xl">

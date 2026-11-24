@@ -2,7 +2,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm, type ResolverResult } from "react-hook-form";
 import type { CandidateContextFormContract } from "../../application/contracts/controllers/CandidateContextControllerContract";
 import { fileToBase64 } from "../views/utils/fileUtils";
-import { CandidateContextControllerContainer } from "../containers/CandidateContextControllerContainer";
 import {
   useCallback,
   useContext as useReactContext,
@@ -16,16 +15,19 @@ import type {
   CandidateContext,
   CandidateContextInput,
 } from "../../domain/models/CandidateContext";
+import type { CandidateContextControllerContract } from "../../application/contracts/controllers/CandidateContextControllerContract";
+import type {
+  PrimaryContextPresentation,
+  ProfilePresentation,
+} from "../presenters/CandidateContextPresenter";
+
+type CandidateContextController = CandidateContextControllerContract<
+  PrimaryContextPresentation,
+  ProfilePresentation[]
+>;
 
 // Load the signed-in user's candidate profiles into the query cache.
-export function useContexts() {
-  // Read the injected application operations used by this hook.
-  const controller = useReactContext(CandidateContextControllerContainer);
-
-  if (!controller) {
-    throw new Error("CandidateContextControllerContainer provider missing");
-  }
-
+export function useContexts(controller: CandidateContextController) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useReactContext(AuthContainer);
 
@@ -43,14 +45,7 @@ export function useContexts() {
 }
 
 // Load one candidate profile when both the user and profile identifiers are available.
-export function useContext(id: string) {
-  // Read the injected application operations used by this hook.
-  const controller = useReactContext(CandidateContextControllerContainer);
-
-  if (!controller) {
-    throw new Error("CandidateContextControllerContainer provider missing");
-  }
-
+export function useContext(id: string, controller: CandidateContextController) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useReactContext(AuthContainer);
 
@@ -68,14 +63,10 @@ export function useContext(id: string) {
 }
 
 // Create or update a profile and refresh its list and detail queries.
-export function useSaveContext(id?: string) {
-  // Read the injected application operations used by this hook.
-  const controller = useReactContext(CandidateContextControllerContainer);
-
-  if (!controller) {
-    throw new Error("CandidateContextControllerContainer provider missing");
-  }
-
+export function useSaveContext(
+  id: string | undefined,
+  controller: CandidateContextController,
+) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useReactContext(AuthContainer);
 
@@ -99,14 +90,7 @@ export function useSaveContext(id?: string) {
 }
 
 // Delete a candidate profile and refresh the user's profile list.
-export function useDeleteContext() {
-  // Read the injected application operations used by this hook.
-  const controller = useReactContext(CandidateContextControllerContainer);
-
-  if (!controller) {
-    throw new Error("CandidateContextControllerContainer provider missing");
-  }
-
+export function useDeleteContext(controller: CandidateContextController) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useReactContext(AuthContainer);
 
@@ -127,14 +111,7 @@ export function useDeleteContext() {
 }
 
 // Observe the shared context list and expose primary-context output prepared by the use case presenter.
-export function usePrimaryContext() {
-  // Read the controller supplied by startup without importing its implementation.
-  const controller = useReactContext(CandidateContextControllerContainer);
-
-  if (!controller) {
-    throw new Error("CandidateContextControllerContainer provider missing");
-  }
-
+export function usePrimaryContext(controller: CandidateContextController) {
   // Scope the shared candidate context cache to the authenticated user.
   const auth = useReactContext(AuthContainer);
 
@@ -159,18 +136,12 @@ export function usePrimaryContext() {
 }
 
 // Prepare profile-card output from the shared list cache and handle confirmed deletion.
-export function useProfiles() {
-  // Read the injected candidate context input and presentation operations.
-  const controller = useReactContext(CandidateContextControllerContainer);
-
-  if (!controller)
-    throw new Error("CandidateContextControllerContainer provider missing");
-
+export function useProfiles(controller: CandidateContextController) {
   // Observe the saved contexts shared with the dashboard and submission form.
-  const contexts = useContexts();
+  const contexts = useContexts(controller);
 
   // Expose deletion feedback through the existing user-scoped mutation.
-  const del = useDeleteContext();
+  const del = useDeleteContext(controller);
 
   // Invoke presentation only when the underlying list or injected controller changes.
   const profiles = useMemo(
@@ -192,13 +163,7 @@ export function useProfiles() {
 }
 
 // Connect profile validation, loaded fields, selected files, and save navigation to React.
-export function useProfileEditor() {
-  // Read the injected candidate context input and presentation operations.
-  const controller = useReactContext(CandidateContextControllerContainer);
-
-  if (!controller)
-    throw new Error("CandidateContextControllerContainer provider missing");
-
+export function useProfileEditor(controller: CandidateContextController) {
   // Identify the profile being edited from the route.
   const { contextId } = useParams();
 
@@ -206,10 +171,10 @@ export function useProfileEditor() {
   const editing = !!contextId;
 
   // Load existing values only when an identifier is present.
-  const query = useContext(contextId || "");
+  const query = useContext(contextId || "", controller);
 
   // Save through the shared create-or-update mutation.
-  const save = useSaveContext(contextId);
+  const save = useSaveContext(contextId, controller);
 
   // Return to the profile list after a successful save.
   const navigate = useNavigate();

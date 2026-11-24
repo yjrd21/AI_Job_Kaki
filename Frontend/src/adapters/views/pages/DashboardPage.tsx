@@ -4,14 +4,36 @@ import { usePrimaryContext } from "../../hooks/useContexts";
 import { useJobs } from "../../hooks/useJobs";
 import { Loading, ErrorNotice } from "../components/composed/Feedback";
 import { RecentAnalysisCard } from "../components/composed/RecentAnalysisCard";
+import type { JobControllerContract } from "../../../application/contracts/controllers/JobControllerContract";
+import type { CandidateContextControllerContract } from "../../../application/contracts/controllers/CandidateContextControllerContract";
+import type {
+  JobAnalysisPresentation,
+  JobPresentation,
+} from "../../presenters/JobPresenter";
+import type {
+  PrimaryContextPresentation,
+  ProfilePresentation,
+} from "../../presenters/CandidateContextPresenter";
 
 // Display the primary candidate context and most recent job analysis.
-export function DashboardPage() {
+export function DashboardPage({
+  jobController,
+  candidateContextController,
+}: {
+  jobController: JobControllerContract<
+    JobPresentation,
+    JobAnalysisPresentation
+  >;
+  candidateContextController: CandidateContextControllerContract<
+    PrimaryContextPresentation,
+    ProfilePresentation[]
+  >;
+}) {
   // Read primary-context display output prepared through the controller and use case.
-  const primaryContext = usePrimaryContext();
+  const primaryContext = usePrimaryContext(candidateContextController);
 
   // Load submission history for the recent analysis card.
-  const jobs = useJobs();
+  const jobs = useJobs(jobController);
 
   return (
     <div>

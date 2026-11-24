@@ -3,9 +3,21 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, FileText, Info, Save } from "lucide-react";
 import { Button } from "../components/primitives/Button";
 import { ErrorNotice, Loading } from "../components/composed/Feedback";
+import type { CandidateContextControllerContract } from "../../../application/contracts/controllers/CandidateContextControllerContract";
+import type {
+  PrimaryContextPresentation,
+  ProfilePresentation,
+} from "../../presenters/CandidateContextPresenter";
 
 // Create or edit a candidate profile with an optional replacement CV.
-export function ProfileEditorPage() {
+export function ProfileEditorPage({
+  candidateContextController,
+}: {
+  candidateContextController: CandidateContextControllerContract<
+    PrimaryContextPresentation,
+    ProfilePresentation[]
+  >;
+}) {
   // Bind profile editor state and handlers supplied by the candidate context hook.
   const {
     editing,
@@ -16,7 +28,7 @@ export function ProfileEditorPage() {
     fileError,
     onSubmit,
     onFileChange,
-  } = useProfileEditor();
+  } = useProfileEditor(candidateContextController);
 
   return (
     <div className="max-w-3xl">

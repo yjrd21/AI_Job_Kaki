@@ -10,8 +10,6 @@ import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { DashboardPage } from "../../../../src/adapters/views/pages/DashboardPage";
-import { CandidateContextControllerContainer } from "../../../../src/adapters/containers/CandidateContextControllerContainer";
-import { JobControllerContainer } from "../../../../src/adapters/containers/JobControllerContainer";
 import { AuthContainer } from "../../../../src/adapters/containers/AuthContainer";
 import {
   useContexts,
@@ -35,22 +33,16 @@ function setup() {
   function wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        <CandidateContextControllerContainer.Provider
-          value={dependencies.candidateContextController}
+        <AuthContainer.Provider
+          value={{
+            ...signedIn,
+            ready: true,
+            login: session.login,
+            logout: session.logout,
+          }}
         >
-          <JobControllerContainer.Provider value={dependencies.jobController}>
-            <AuthContainer.Provider
-              value={{
-                ...signedIn,
-                ready: true,
-                login: session.login,
-                logout: session.logout,
-              }}
-            >
-              <MemoryRouter>{children}</MemoryRouter>
-            </AuthContainer.Provider>
-          </JobControllerContainer.Provider>
-        </CandidateContextControllerContainer.Provider>
+          <MemoryRouter>{children}</MemoryRouter>
+        </AuthContainer.Provider>
       </QueryClientProvider>
     );
   }
@@ -59,7 +51,8 @@ function setup() {
 
 describe("dashboard primary context through controller and presenter", () => {
   it("renders the first context with presenter-prepared labels", async () => {
-    const { wrapper, repositories } = setup();
+    const { wrapper, repositories, jobController, candidateContextController } =
+      setup();
     repositories.contexts.list.mockResolvedValue([
       profile,
       {
@@ -69,7 +62,13 @@ describe("dashboard primary context through controller and presenter", () => {
         updatedAt: "2027-01-01",
       },
     ]);
-    render(<DashboardPage />, { wrapper });
+    render(
+      <DashboardPage
+        jobController={jobController}
+        candidateContextController={candidateContextController}
+      />,
+      { wrapper },
+    );
     expect(
       await screen.findByRole("heading", { name: "Engineer" }),
     ).toBeInTheDocument();
@@ -80,9 +79,16 @@ describe("dashboard primary context through controller and presenter", () => {
   });
 
   it("renders presenter-prepared empty output", async () => {
-    const { wrapper, repositories } = setup();
+    const { wrapper, repositories, jobController, candidateContextController } =
+      setup();
     repositories.contexts.list.mockResolvedValue([]);
-    render(<DashboardPage />, { wrapper });
+    render(
+      <DashboardPage
+        jobController={jobController}
+        candidateContextController={candidateContextController}
+      />,
+      { wrapper },
+    );
     expect(
       await screen.findByText("No candidate profiles yet."),
     ).toBeInTheDocument();
@@ -92,11 +98,18 @@ describe("dashboard primary context through controller and presenter", () => {
   });
 
   it("shows a request failure instead of presenting an empty list", async () => {
-    const { wrapper, repositories } = setup();
+    const { wrapper, repositories, jobController, candidateContextController } =
+      setup();
     repositories.contexts.list.mockRejectedValue(
       new Error("Contexts unavailable"),
     );
-    render(<DashboardPage />, { wrapper });
+    render(
+      <DashboardPage
+        jobController={jobController}
+        candidateContextController={candidateContextController}
+      />,
+      { wrapper },
+    );
     expect(await screen.findByText("Contexts unavailable")).toBeInTheDocument();
     expect(
       screen.queryByText("No candidate profiles yet."),
@@ -104,9 +117,13 @@ describe("dashboard primary context through controller and presenter", () => {
   });
 
   it("shares the raw list cache and updates primary output when that cache changes", async () => {
-    const { wrapper, repositories, queryClient } = setup();
+    const { wrapper, repositories, queryClient, candidateContextController } =
+      setup();
     const hook = renderHook(
-      () => ({ list: useContexts(), primary: usePrimaryContext() }),
+      () => ({
+        list: useContexts(candidateContextController),
+        primary: usePrimaryContext(candidateContextController),
+      }),
       { wrapper },
     );
     await waitFor(() =>

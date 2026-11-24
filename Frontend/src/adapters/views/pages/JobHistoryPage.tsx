@@ -7,12 +7,24 @@ import {
   ErrorNotice,
   Loading,
 } from "../components/composed/Feedback";
+import type { JobControllerContract } from "../../../application/contracts/controllers/JobControllerContract";
+import type {
+  JobAnalysisPresentation,
+  JobPresentation,
+} from "../../presenters/JobPresenter";
 
 // Display searchable job history with links and deletion actions.
-export function JobHistoryPage() {
+export function JobHistoryPage({
+  jobController,
+}: {
+  jobController: JobControllerContract<
+    JobPresentation,
+    JobAnalysisPresentation
+  >;
+}) {
   // Bind history search and deletion events supplied by the job hook.
   const { jobs, del, search, onSearchChange, filtered, onDelete } =
-    useJobHistory();
+    useJobHistory(jobController);
 
   return (
     <div>

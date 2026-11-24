@@ -6,18 +6,16 @@
 
 [View the LLD in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=339-170)
 
-
 ## Layers and responsibilities
 
 The frontend uses application-wide Clean Architecture, organised by layer rather than feature.
 
-| Layer | Directory | Responsibility |
-| --- | --- | --- |
-| Entities | `src/domain` | Define frontend models independently of UI frameworks and external services. |
-| Use cases | `src/application` | Coordinate application operations and declare controller, repository, presenter and client contracts. |
-| Interface adapters | `src/adapters` | Validate input through controllers, format output through presenters, implement repositories and authentication clients, and connect React views through hooks and containers. |
-| Frameworks and drivers | `src/infrastructure` | Configure Axios transport, Keycloak SDK, React Query, environment values and provider assembly. |
-
+| Layer                  | Directory            | Responsibility                                                                                                                                                                                 |
+| ---------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Entities               | `src/domain`         | Define frontend models independently of UI frameworks and external services.                                                                                                                   |
+| Use cases              | `src/application`    | Coordinate application operations and declare controller, repository, presenter and client contracts.                                                                                          |
+| Interface adapters     | `src/adapters`       | Validate input through controllers, format output through presenters, implement repositories and authentication clients, and connect React views to controllers through route props and hooks. |
+| Frameworks and drivers | `src/infrastructure` | Configure Axios transport, Keycloak SDK, React Query, environment values and provider assembly.                                                                                                |
 
 ## Example flow: Job Submission
 
@@ -25,10 +23,9 @@ The frontend uses application-wide Clean Architecture, organised by layer rather
 
 [View the sequence in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=331-170)
 
-
 ## Routing
 
-Routes are defined in [`src/adapters/views/routes/index.tsx`](src/adapters/views/routes/index.tsx) using React Router.
+Routes are defined in [`src/adapters/views/routes.tsx`](src/adapters/views/routes.tsx) using React Router.
 
 | Route                  | Page                                  |
 | ---------------------- | ------------------------------------- |

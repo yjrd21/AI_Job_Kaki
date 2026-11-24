@@ -1,7 +1,3 @@
-import { OnboardingControllerContainer } from "../../../../src/adapters/containers/OnboardingControllerContainer";
-import { CandidateContextControllerContainer } from "../../../../src/adapters/containers/CandidateContextControllerContainer";
-import { JobControllerContainer } from "../../../../src/adapters/containers/JobControllerContainer";
-import { AccountControllerContainer } from "../../../../src/adapters/containers/AccountControllerContainer";
 import {
   act,
   fireEvent,
@@ -12,7 +8,7 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 import { App } from "../../../../src/app/App";
-import { router } from "../../../../src/adapters/views/routes/index";
+import { createAppRouter } from "../../../../src/adapters/views/routes";
 import { AuthContainerProvider } from "../../../../src/infrastructure/providers/AuthContainerProvider";
 import {
   makeControllers,
@@ -42,34 +38,28 @@ async function showRoute(
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
+  const router = createAppRouter({
+    accountController,
+    jobController,
+    candidateContextController,
+    onboardingController,
+  });
   await act(async () => {
     await router.navigate(path);
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <AccountControllerContainer.Provider value={accountController}>
-        <JobControllerContainer.Provider value={jobController}>
-          <CandidateContextControllerContainer.Provider
-            value={candidateContextController}
-          >
-            <OnboardingControllerContainer.Provider
-              value={onboardingController}
-            >
-              <AuthContainerProvider session={session}>
-                <App />
-              </AuthContainerProvider>
-            </OnboardingControllerContainer.Provider>
-          </CandidateContextControllerContainer.Provider>
-        </JobControllerContainer.Provider>
-      </AccountControllerContainer.Provider>
+      <AuthContainerProvider session={session}>
+        <App router={router} />
+      </AuthContainerProvider>
     </QueryClientProvider>,
   );
-  return { session, repositories };
+  return { session, repositories, router };
 }
 
 describe("application routes after moving the frontend", () => {
   it("redirects signed-out users to login and delegates the login button", async () => {
-    const { session, repositories } = await showRoute("/dashboard", {
+    const { session, repositories, router } = await showRoute("/dashboard", {
       ...signedIn,
       authenticated: false,
       userId: null,
@@ -85,7 +75,7 @@ describe("application routes after moving the frontend", () => {
   });
 
   it("redirects unfinished accounts to onboarding", async () => {
-    await showRoute("/dashboard", signedIn, false);
+    const { router } = await showRoute("/dashboard", signedIn, false);
     await screen.findByRole("heading", { name: "Choose your target roles" });
     expect(router.state.location.pathname).toBe("/onboarding");
   });
@@ -99,8 +89,8 @@ describe("application routes after moving the frontend", () => {
     ["/profiles/new", "Create a candidate profile."],
     ["/profiles/profile-id", "Refine your profile."],
     ["/account", "Account settings"],
-  ])("renders %s with the injected application", async (path, heading) => {
-    await showRoute(path);
+  ])("renders %s with the injected controllers", async (path, heading) => {
+    const { router } = await showRoute(path);
     await screen.findByRole("heading", { name: heading, level: 1 });
     await waitFor(() => expect(router.state.location.pathname).toBe(path));
     expect(

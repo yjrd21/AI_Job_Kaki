@@ -7,9 +7,6 @@ import { ProfileEditorPage } from "../../../../src/adapters/views/pages/ProfileE
 import { ProfilesPage } from "../../../../src/adapters/views/pages/ProfilesPage";
 import { OnboardingPage } from "../../../../src/adapters/views/pages/OnboardingPage";
 import { LoginPage } from "../../../../src/adapters/views/pages/LoginPage";
-import { AccountControllerContainer } from "../../../../src/adapters/containers/AccountControllerContainer";
-import { CandidateContextControllerContainer } from "../../../../src/adapters/containers/CandidateContextControllerContainer";
-import { OnboardingControllerContainer } from "../../../../src/adapters/containers/OnboardingControllerContainer";
 import { AuthContainer } from "../../../../src/adapters/containers/AuthContainer";
 import {
   account,
@@ -28,54 +25,38 @@ function setup() {
   function show(page: ReactElement, path: string, signedOut = false) {
     render(
       <QueryClientProvider client={queryClient}>
-        <AccountControllerContainer.Provider
-          value={dependencies.accountController}
+        <AuthContainer.Provider
+          value={{
+            ...signedIn,
+            authenticated: !signedOut,
+            ready: true,
+            login: session.login,
+            logout: session.logout,
+          }}
         >
-          <CandidateContextControllerContainer.Provider
-            value={dependencies.candidateContextController}
+          <MemoryRouter
+            initialEntries={[path]}
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true,
+            }}
           >
-            <OnboardingControllerContainer.Provider
-              value={dependencies.onboardingController}
-            >
-              <AuthContainer.Provider
-                value={{
-                  ...signedIn,
-                  authenticated: !signedOut,
-                  ready: true,
-                  login: session.login,
-                  logout: session.logout,
-                }}
-              >
-                <MemoryRouter
-                  initialEntries={[path]}
-                  future={{
-                    v7_startTransition: true,
-                    v7_relativeSplatPath: true,
-                  }}
-                >
-                  <Routes>
-                    <Route
-                      path={
-                        path.startsWith("/profiles/") &&
-                        path !== "/profiles/new"
-                          ? "/profiles/:contextId"
-                          : path
-                      }
-                      element={page}
-                    />
-                    {path !== "/profiles" && (
-                      <Route path="/profiles" element={<p>Saved profiles</p>} />
-                    )}
-                    <Route
-                      path="/dashboard"
-                      element={<p>Dashboard destination</p>}
-                    />
-                  </Routes>
-                </MemoryRouter>
-              </AuthContainer.Provider>
-            </OnboardingControllerContainer.Provider>
-          </CandidateContextControllerContainer.Provider>
-        </AccountControllerContainer.Provider>
+            <Routes>
+              <Route
+                path={
+                  path.startsWith("/profiles/") && path !== "/profiles/new"
+                    ? "/profiles/:contextId"
+                    : path
+                }
+                element={page}
+              />
+              {path !== "/profiles" && (
+                <Route path="/profiles" element={<p>Saved profiles</p>} />
+              )}
+              <Route path="/dashboard" element={<p>Dashboard destination</p>} />
+            </Routes>
+          </MemoryRouter>
+        </AuthContainer.Provider>
       </QueryClientProvider>,
     );
   }
@@ -107,8 +88,13 @@ async function advanceToFinalStep() {
 
 describe("profile editor through controller and presenter", () => {
   it("validates input, prepares lists, and creates a profile before navigating", async () => {
-    const { show, repositories } = setup();
-    show(<ProfileEditorPage />, "/profiles/new");
+    const { show, repositories, candidateContextController } = setup();
+    show(
+      <ProfileEditorPage
+        candidateContextController={candidateContextController}
+      />,
+      "/profiles/new",
+    );
     submitProfile();
     await screen.findByText("At least one target role is required");
     expect(repositories.contexts.create).not.toHaveBeenCalled();
@@ -131,12 +117,17 @@ describe("profile editor through controller and presenter", () => {
   });
 
   it("populates existing values and updates without replacing the saved CV", async () => {
-    const { show, repositories } = setup();
+    const { show, repositories, candidateContextController } = setup();
     repositories.contexts.get.mockResolvedValue({
       ...profile,
       targetRoles: ["Engineer", "Designer"],
     });
-    show(<ProfileEditorPage />, "/profiles/profile-id");
+    show(
+      <ProfileEditorPage
+        candidateContextController={candidateContextController}
+      />,
+      "/profiles/profile-id",
+    );
     await waitFor(() =>
       expect(screen.getByLabelText(/Career directions/)).toHaveValue(
         "Engineer\nDesigner",
@@ -156,8 +147,13 @@ describe("profile editor through controller and presenter", () => {
   });
 
   it("reports oversized files before saving and keeps save failures separate", async () => {
-    const { show, repositories } = setup();
-    show(<ProfileEditorPage />, "/profiles/new");
+    const { show, repositories, candidateContextController } = setup();
+    show(
+      <ProfileEditorPage
+        candidateContextController={candidateContextController}
+      />,
+      "/profiles/new",
+    );
     fireEvent.change(screen.getByLabelText(/Career directions/), {
       target: { value: "Engineer" },
     });
@@ -183,8 +179,15 @@ describe("profile editor through controller and presenter", () => {
 
 describe("onboarding workflow from the page", () => {
   it("passes an accepted encoded CV through the onboarding controller", async () => {
-    const { show, repositories } = setup();
-    show(<OnboardingPage />, "/onboarding");
+    const { show, repositories, onboardingController, accountController } =
+      setup();
+    show(
+      <OnboardingPage
+        onboardingController={onboardingController}
+        accountController={accountController}
+      />,
+      "/onboarding",
+    );
     await screen.findByLabelText("Target roles");
     fireEvent.change(screen.getByLabelText("Target roles"), {
       target: { value: "Engineer" },
@@ -213,11 +216,18 @@ describe("onboarding workflow from the page", () => {
   });
 
   it("validates the first step and retries completion without another profile creation", async () => {
-    const { show, repositories } = setup();
+    const { show, repositories, onboardingController, accountController } =
+      setup();
     repositories.users.completeOnboarding.mockRejectedValueOnce(
       new Error("Completion unavailable"),
     );
-    show(<OnboardingPage />, "/onboarding");
+    show(
+      <OnboardingPage
+        onboardingController={onboardingController}
+        accountController={accountController}
+      />,
+      "/onboarding",
+    );
     await screen.findByLabelText("Target roles");
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByText("Add at least one target role.");
@@ -243,8 +253,14 @@ describe("onboarding workflow from the page", () => {
   });
 
   it("rejects an unsupported CV selection and keeps the previous-step action in the hook", async () => {
-    const { show } = setup();
-    show(<OnboardingPage />, "/onboarding");
+    const { show, onboardingController, accountController } = setup();
+    show(
+      <OnboardingPage
+        onboardingController={onboardingController}
+        accountController={accountController}
+      />,
+      "/onboarding",
+    );
     await screen.findByLabelText("Target roles");
     fireEvent.change(screen.getByLabelText("Target roles"), {
       target: { value: "Engineer" },
@@ -264,8 +280,11 @@ describe("onboarding workflow from the page", () => {
 
 describe("profile listing and sign-in actions", () => {
   it("renders prepared card output and handles cancelled and failed deletions", async () => {
-    const { show, repositories } = setup();
-    show(<ProfilesPage />, "/profiles");
+    const { show, repositories, candidateContextController } = setup();
+    show(
+      <ProfilesPage candidateContextController={candidateContextController} />,
+      "/profiles",
+    );
     await screen.findByRole("heading", { name: "Engineer" });
     expect(screen.getByText("PROFILE 01")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "View and edit" })).toHaveAttribute(

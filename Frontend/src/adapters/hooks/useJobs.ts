@@ -2,9 +2,20 @@ import { useContext, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useForm, type ResolverResult } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { JobControllerContainer } from "../containers/JobControllerContainer";
 import { AuthContainer } from "../containers/AuthContainer";
-import type { JobInputContract } from "../../application/contracts/controllers/JobControllerContract";
+import type {
+  JobControllerContract,
+  JobInputContract,
+} from "../../application/contracts/controllers/JobControllerContract";
+import type {
+  JobAnalysisPresentation,
+  JobPresentation,
+} from "../presenters/JobPresenter";
+
+type JobController = JobControllerContract<
+  JobPresentation,
+  JobAnalysisPresentation
+>;
 
 // Keep job list, submission, and analysis query keys consistent across hooks.
 export const jobKeys = {
@@ -14,14 +25,7 @@ export const jobKeys = {
 };
 
 // Load the signed-in user's submissions into the query cache.
-export function useJobs() {
-  // Read the injected controller that handles job input and application access.
-  const controller = useContext(JobControllerContainer);
-
-  if (!controller) {
-    throw new Error("JobControllerContainer provider missing");
-  }
-
+export function useJobs(controller: JobController) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useContext(AuthContainer);
 
@@ -39,14 +43,7 @@ export function useJobs() {
 }
 
 // Poll an active submission every 2.5 seconds until processing completes or fails.
-export function useJob(id: string) {
-  // Read the injected controller that handles job input and application access.
-  const controller = useContext(JobControllerContainer);
-
-  if (!controller) {
-    throw new Error("JobControllerContainer provider missing");
-  }
-
+export function useJob(id: string, controller: JobController) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useContext(AuthContainer);
 
@@ -68,14 +65,10 @@ export function useJob(id: string) {
 }
 
 // Fetch a saved analysis only when an analysis identifier is available.
-export function useAnalysis(id: string | null | undefined) {
-  // Read the injected controller that handles job input and application access.
-  const controller = useContext(JobControllerContainer);
-
-  if (!controller) {
-    throw new Error("JobControllerContainer provider missing");
-  }
-
+export function useAnalysis(
+  id: string | null | undefined,
+  controller: JobController,
+) {
   return useQuery({
     queryKey: jobKeys.analysis(id || ""),
     queryFn: () => controller.getAnalysis(id!),
@@ -84,14 +77,7 @@ export function useAnalysis(id: string | null | undefined) {
 }
 
 // Submit a job and invalidate the current user's cached submission list.
-export function useSubmitJob() {
-  // Read the injected controller that handles job input and application access.
-  const controller = useContext(JobControllerContainer);
-
-  if (!controller) {
-    throw new Error("JobControllerContainer provider missing");
-  }
-
+export function useSubmitJob(controller: JobController) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useContext(AuthContainer);
 
@@ -113,14 +99,7 @@ export function useSubmitJob() {
 }
 
 // Delete a submission and invalidate the current user's cached submission list.
-export function useDeleteJob() {
-  // Read the injected controller that handles job input and application access.
-  const controller = useContext(JobControllerContainer);
-
-  if (!controller) {
-    throw new Error("JobControllerContainer provider missing");
-  }
-
+export function useDeleteJob(controller: JobController) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useContext(AuthContainer);
 
@@ -141,22 +120,15 @@ export function useDeleteJob() {
 }
 
 // Connect job form state, controller validation, URL defaults, and submission to React.
-export function useAnalyseJobForm() {
+export function useAnalyseJobForm(controller: JobController) {
   // Prepare the submission mutation and its loading and error state.
-  const submit = useSubmitJob();
+  const submit = useSubmitJob(controller);
 
   // Access route navigation for transitions after successful user actions.
   const navigate = useNavigate();
 
   // Read prefilled job and profile values from the current URL.
   const [params] = useSearchParams();
-
-  // Read job input validation through the layer 2 controller contract.
-  const controller = useContext(JobControllerContainer);
-
-  if (!controller) {
-    throw new Error("JobControllerContainer provider missing");
-  }
 
   // Translate controller validation feedback into React Hook Form field errors.
   const form = useForm<JobInputContract>({
@@ -213,11 +185,11 @@ export function useAnalyseJobForm() {
 }
 
 // Connect history search, cached submissions, and confirmed deletion to React.
-export function useJobHistory() {
+export function useJobHistory(controller: JobController) {
   // Observe the existing user-scoped list and deletion mutation.
-  const jobs = useJobs();
+  const jobs = useJobs(controller);
 
-  const del = useDeleteJob();
+  const del = useDeleteJob(controller);
 
   // Retain the local search input without refetching the submission list.
   const [search, setSearch] = useState("");
@@ -244,22 +216,23 @@ export function useJobHistory() {
 }
 
 // Coordinate submission polling, completed-report retrieval, and result actions.
-export function useJobResult() {
+export function useJobResult(controller: JobController) {
   // Read the submission identifier and the navigation action from React Router.
   const { jobId = "" } = useParams();
 
   const navigate = useNavigate();
 
   // Poll the submission and enable report retrieval only after completion.
-  const job = useJob(jobId);
+  const job = useJob(jobId, controller);
 
   const result = useAnalysis(
     job.data?.presentation.state === "completed"
       ? job.data.jobAnalysisId
       : null,
+    controller,
   );
 
-  const del = useDeleteJob();
+  const del = useDeleteJob(controller);
 
   // Use the report heading when available and the prepared submission heading otherwise.
   const heading =

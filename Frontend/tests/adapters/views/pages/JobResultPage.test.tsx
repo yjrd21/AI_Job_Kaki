@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { JobResultPage } from "../../../../src/adapters/views/pages/JobResultPage";
-import { JobControllerContainer } from "../../../../src/adapters/containers/JobControllerContainer";
 import { AuthContainerProvider } from "../../../../src/infrastructure/providers/AuthContainerProvider";
 import {
   analysis,
@@ -35,19 +34,20 @@ function showResult(
   const session = makeSession();
   render(
     <QueryClientProvider client={queryClient}>
-      <JobControllerContainer.Provider value={jobController}>
-        <AuthContainerProvider session={session}>
-          <MemoryRouter
-            initialEntries={["/jobs/job-id"]}
-            future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-          >
-            <Routes>
-              <Route path="/history" element={<p>Submission history</p>} />
-              <Route path="/jobs/:jobId" element={<JobResultPage />} />
-            </Routes>
-          </MemoryRouter>
-        </AuthContainerProvider>
-      </JobControllerContainer.Provider>
+      <AuthContainerProvider session={session}>
+        <MemoryRouter
+          initialEntries={["/jobs/job-id"]}
+          future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+        >
+          <Routes>
+            <Route path="/history" element={<p>Submission history</p>} />
+            <Route
+              path="/jobs/:jobId"
+              element={<JobResultPage jobController={jobController} />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </AuthContainerProvider>
     </QueryClientProvider>,
   );
   return { failed, requestFailed, repositories };

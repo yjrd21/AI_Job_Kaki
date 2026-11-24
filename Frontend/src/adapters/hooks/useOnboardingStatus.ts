@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { OnboardingControllerContainer } from "../containers/OnboardingControllerContainer";
 import { fileToBase64, MAX_CV_BYTES } from "../views/utils/fileUtils";
 import { useAccount } from "./useAccount";
 import type {
@@ -9,21 +8,15 @@ import type {
 import { useContext, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AuthContainer } from "../containers/AuthContainer";
-import { AccountControllerContainer } from "../containers/AccountControllerContainer";
+import type { AccountController } from "../controllers/AccountController";
+import type { OnboardingControllerContract } from "../../application/contracts/controllers/OnboardingControllerContract";
 
 // Reuse the account query so onboarding checks and account editing share one cache entry.
 export { useAccount as useOnboardingStatus } from "./useAccount";
 
 // Complete onboarding and refresh the shared account status after success.
 /** Requires the future User Service POST /users/{id}/onboarding/complete endpoint. */
-export function useCompleteOnboarding() {
-  // Read the injected application operations used by this hook.
-  const controller = useContext(AccountControllerContainer);
-
-  if (!controller) {
-    throw new Error("AccountControllerContainer provider missing");
-  }
-
+export function useCompleteOnboarding(controller: AccountController) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useContext(AuthContainer);
 
@@ -44,17 +37,15 @@ export function useCompleteOnboarding() {
 }
 
 // Connect onboarding steps, file reading, and workflow execution to React.
-export function useOnboardingForm() {
-  const controller = useContext(OnboardingControllerContainer);
-
-  if (!controller)
-    throw new Error("OnboardingControllerContainer provider missing");
-
+export function useOnboardingForm(
+  controller: OnboardingControllerContract,
+  accountController: AccountController,
+) {
   const auth = useContext(AuthContainer);
 
   if (!auth) throw new Error("AuthContainer provider missing");
 
-  const account = useAccount();
+  const account = useAccount(accountController);
 
   const queryClient = useQueryClient();
 

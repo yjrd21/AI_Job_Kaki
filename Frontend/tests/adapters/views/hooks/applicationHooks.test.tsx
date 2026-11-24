@@ -1,6 +1,3 @@
-import { CandidateContextControllerContainer } from "../../../../src/adapters/containers/CandidateContextControllerContainer";
-import { JobControllerContainer } from "../../../../src/adapters/containers/JobControllerContainer";
-import { AccountControllerContainer } from "../../../../src/adapters/containers/AccountControllerContainer";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -49,21 +46,21 @@ function setup() {
   function wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        <CandidateContextControllerContainer.Provider
-          value={candidateContextController}
-        >
-          <AccountControllerContainer.Provider value={accountController}>
-            <JobControllerContainer.Provider value={jobController}>
-              <AuthContainerProvider session={session}>
-                {children}
-              </AuthContainerProvider>
-            </JobControllerContainer.Provider>
-          </AccountControllerContainer.Provider>
-        </CandidateContextControllerContainer.Provider>
+        <AuthContainerProvider session={session}>
+          {children}
+        </AuthContainerProvider>
       </QueryClientProvider>
     );
   }
-  return { wrapper, queryClient, jobPresenter, repositories };
+  return {
+    wrapper,
+    queryClient,
+    jobPresenter,
+    repositories,
+    candidateContextController,
+    accountController,
+    jobController,
+  };
 }
 afterEach(() => {
   cleanup();
@@ -72,20 +69,24 @@ afterEach(() => {
 
 describe("hooks with injected application operations", () => {
   it("reuses cached presenter output without another request or presentation callback", async () => {
-    const { wrapper, repositories, jobPresenter } = setup();
+    const { wrapper, repositories, jobPresenter, jobController } = setup();
     repositories.jobs.get.mockResolvedValue({
       ...job,
       status: "FAILED",
       errorCode: "CV_MISSING",
     });
     const presented = vi.spyOn(jobPresenter, "presentFailed");
-    const first = renderHook(() => useJob("job-id"), { wrapper });
+    const first = renderHook(() => useJob("job-id", jobController), {
+      wrapper,
+    });
     await waitFor(() =>
       expect(first.result.current.data?.presentation.state).toBe("failed"),
     );
     first.unmount();
 
-    const second = renderHook(() => useJob("job-id"), { wrapper });
+    const second = renderHook(() => useJob("job-id", jobController), {
+      wrapper,
+    });
     await waitFor(() =>
       expect(second.result.current.data?.presentation).toMatchObject({
         state: "failed",
@@ -97,7 +98,7 @@ describe("hooks with injected application operations", () => {
   });
 
   it("keeps a late response for a previous job out of the current job's display state", async () => {
-    const { wrapper, queryClient, repositories } = setup();
+    const { wrapper, queryClient, repositories, jobController } = setup();
     let resolvePrevious!: (value: typeof job) => void;
     const previous = new Promise<typeof job>((resolve) => {
       resolvePrevious = resolve;
@@ -112,7 +113,7 @@ describe("hooks with injected application operations", () => {
             errorMessage: "Current job failed",
           }),
     );
-    const hook = renderHook(({ id }) => useJob(id), {
+    const hook = renderHook(({ id }) => useJob(id, jobController), {
       wrapper,
       initialProps: { id: "previous-job" },
     });
@@ -151,11 +152,11 @@ describe("hooks with injected application operations", () => {
     "polls pending work and stops at %s",
     async (status) => {
       vi.useFakeTimers();
-      const { wrapper, repositories } = setup();
+      const { wrapper, repositories, jobController } = setup();
       repositories.jobs.get
         .mockResolvedValueOnce(job)
         .mockResolvedValue({ ...job, status });
-      renderHook(() => useJob("job-id"), { wrapper });
+      renderHook(() => useJob("job-id", jobController), { wrapper });
       await act(async () => {
         await vi.advanceTimersByTimeAsync(10);
       });
@@ -173,11 +174,20 @@ describe("hooks with injected application operations", () => {
   );
 
   it("routes deletion through the application and invalidates only the current user's list", async () => {
-    const { wrapper, queryClient, repositories } = setup();
+    const {
+      wrapper,
+      queryClient,
+      repositories,
+      accountController,
+      jobController,
+    } = setup();
     queryClient.setQueryData(jobKeys.all("user-id"), [job]);
     queryClient.setQueryData(jobKeys.all("another-user"), []);
     const hook = renderHook(
-      () => ({ account: useAccount(), deletion: useDeleteJob() }),
+      () => ({
+        account: useAccount(accountController),
+        deletion: useDeleteJob(jobController),
+      }),
       { wrapper },
     );
     await waitFor(() =>
@@ -196,13 +206,13 @@ describe("hooks with injected application operations", () => {
   });
 
   it("shares account/onboarding cache and refreshes it after account and onboarding mutations", async () => {
-    const { wrapper, repositories } = setup();
+    const { wrapper, repositories, accountController } = setup();
     const hook = renderHook(
       () => ({
-        account: useAccount(),
-        status: useOnboardingStatus(),
-        save: useSaveAccount(),
-        complete: useCompleteOnboarding(),
+        account: useAccount(accountController),
+        status: useOnboardingStatus(accountController),
+        save: useSaveAccount(accountController),
+        complete: useCompleteOnboarding(accountController),
       }),
       { wrapper },
     );
@@ -245,12 +255,12 @@ describe("hooks with injected application operations", () => {
   });
 
   it("refreshes both profile list and detail after an edit", async () => {
-    const { wrapper, repositories } = setup();
+    const { wrapper, repositories, candidateContextController } = setup();
     const hook = renderHook(
       () => ({
-        list: useContexts(),
-        detail: useContext("profile-id"),
-        save: useSaveContext("profile-id"),
+        list: useContexts(candidateContextController),
+        detail: useContext("profile-id", candidateContextController),
+        save: useSaveContext("profile-id", candidateContextController),
       }),
       { wrapper },
     );

@@ -12,11 +12,23 @@ import { useJobResult } from "../../hooks/useJobs";
 import { Loading, ErrorNotice } from "../components/composed/Feedback";
 import { StatusBadge } from "../components/composed/JobStatusBadge";
 import { Button } from "../components/primitives/Button";
+import type { JobControllerContract } from "../../../application/contracts/controllers/JobControllerContract";
+import type {
+  JobAnalysisPresentation,
+  JobPresentation,
+} from "../../presenters/JobPresenter";
 
 // Display submission progress, recovery guidance, or the completed analysis report.
-export function JobResultPage() {
+export function JobResultPage({
+  jobController,
+}: {
+  jobController: JobControllerContract<
+    JobPresentation,
+    JobAnalysisPresentation
+  >;
+}) {
   // Bind request state and result actions supplied by the job hook.
-  const { job, result, del, heading, onDelete } = useJobResult();
+  const { job, result, del, heading, onDelete } = useJobResult(jobController);
 
   if (job.isLoading) return <Loading label="Retrieving your job…" />;
   if (job.isError)

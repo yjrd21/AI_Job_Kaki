@@ -5,12 +5,20 @@ import { Button } from "../components/primitives/Button";
 import { Alert } from "../components/primitives/Alert";
 import { StepProgress } from "../components/primitives/StepProgress";
 import { ErrorNotice, Loading } from "../components/composed/Feedback";
+import type { AccountController } from "../../controllers/AccountController";
+import type { OnboardingControllerContract } from "../../../application/contracts/controllers/OnboardingControllerContract";
 
 // Define the ordered steps shown by the onboarding progress indicator.
 const steps = ["Target roles", "CV", "Work preferences", "Priorities"] as const;
 
 // Guide initial profile creation and mark account onboarding as complete.
-export function OnboardingPage() {
+export function OnboardingPage({
+  onboardingController,
+  accountController,
+}: {
+  onboardingController: OnboardingControllerContract;
+  accountController: AccountController;
+}) {
   // Bind step state and workflow handlers supplied by the onboarding hook.
   const {
     account,
@@ -27,7 +35,7 @@ export function OnboardingPage() {
     previous,
     onDashboard,
     onAnalyse,
-  } = useOnboardingForm();
+  } = useOnboardingForm(onboardingController, accountController);
 
   if (account.isPending) return <Loading label="Checking onboarding status…" />;
   if (account.isError)

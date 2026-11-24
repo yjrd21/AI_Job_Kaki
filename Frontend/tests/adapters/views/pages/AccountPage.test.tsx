@@ -2,7 +2,6 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 import { AccountPage } from "../../../../src/adapters/views/pages/AccountPage";
-import { AccountControllerContainer } from "../../../../src/adapters/containers/AccountControllerContainer";
 import { AuthContainerProvider } from "../../../../src/infrastructure/providers/AuthContainerProvider";
 import {
   account,
@@ -17,11 +16,9 @@ async function showAccount() {
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <AccountControllerContainer.Provider value={accountController}>
-        <AuthContainerProvider session={makeSession()}>
-          <AccountPage />
-        </AuthContainerProvider>
-      </AccountControllerContainer.Provider>
+      <AuthContainerProvider session={makeSession()}>
+        <AccountPage accountController={accountController} />
+      </AuthContainerProvider>
     </QueryClientProvider>,
   );
   await screen.findByDisplayValue(account.email);

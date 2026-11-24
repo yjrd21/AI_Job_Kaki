@@ -1,9 +1,4 @@
 import { z } from "zod";
-import type {
-  AccountControllerContract,
-  AccountInputContract,
-  AccountValidationContract,
-} from "../../application/contracts/controllers/AccountControllerContract";
 import type { User, UserUpdate } from "../../domain/models/User";
 
 type AccountControllerDependencies = {
@@ -19,8 +14,10 @@ const accountFormSchema = z.object({
   email: z.string().email("Enter a valid email"),
 });
 
-// Implement account input validation and invoke the injected account operations.
-export class AccountController implements AccountControllerContract {
+export type AccountFormInput = z.infer<typeof accountFormSchema>;
+
+// Validate account input and invoke the injected account operations.
+export class AccountController {
   constructor(private readonly dependencies: AccountControllerDependencies) {}
 
   // Record account onboarding completion.
@@ -34,17 +31,17 @@ export class AccountController implements AccountControllerContract {
   }
 
   // Translate Zod validation results into library-independent field feedback.
-  validateAccount(input: unknown): AccountValidationContract {
+  validateAccount(input: unknown) {
     // Validate the incoming values without throwing for field-level errors.
     const result = accountFormSchema.safeParse(input);
 
-    if (result.success) return { valid: true, values: result.data };
+    if (result.success) return { valid: true as const, values: result.data };
 
     // Collect the first message for each field and any object-level error.
     const { fieldErrors, formErrors } = result.error.flatten();
 
     return {
-      valid: false,
+      valid: false as const,
       errors: {
         firstName: fieldErrors.firstName?.[0],
         lastName: fieldErrors.lastName?.[0],
@@ -55,7 +52,7 @@ export class AccountController implements AccountControllerContract {
   }
 
   // Validate and adapt account input before invoking the save operation.
-  async saveAccount(userId: string, input: AccountInputContract) {
+  async saveAccount(userId: string, input: AccountFormInput) {
     // Parse again at the controller boundary so callers cannot bypass validation.
     const update = accountFormSchema.parse(input);
 

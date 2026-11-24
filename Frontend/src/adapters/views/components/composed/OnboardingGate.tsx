@@ -3,11 +3,16 @@ import { Loading, ErrorNotice } from "./Feedback";
 import { Alert } from "../primitives/Alert";
 import { Button } from "../primitives/Button";
 import { useOnboardingStatus } from "../../../hooks/useOnboardingStatus";
+import type { AccountController } from "../../../controllers/AccountController";
 
 /** Onboarding is account lifecycle state, not candidate-profile count. */
-export function OnboardingGate() {
+export function OnboardingGate({
+  accountController,
+}: {
+  accountController: AccountController;
+}) {
   // Load the persisted onboarding flag before admitting users to the main application.
-  const account = useOnboardingStatus();
+  const account = useOnboardingStatus(accountController);
 
   if (account.isPending)
     return (

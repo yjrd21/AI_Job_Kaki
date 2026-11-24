@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { JobHistoryPage } from "../../../../src/adapters/views/pages/JobHistoryPage";
-import { JobControllerContainer } from "../../../../src/adapters/containers/JobControllerContainer";
 import { AuthContainer } from "../../../../src/adapters/containers/AuthContainer";
 import {
   job,
@@ -20,22 +19,20 @@ function showHistory() {
   });
   render(
     <QueryClientProvider client={client}>
-      <JobControllerContainer.Provider value={jobController}>
-        <AuthContainer.Provider
-          value={{
-            ...signedIn,
-            ready: true,
-            login: session.login,
-            logout: session.logout,
-          }}
+      <AuthContainer.Provider
+        value={{
+          ...signedIn,
+          ready: true,
+          login: session.login,
+          logout: session.logout,
+        }}
+      >
+        <MemoryRouter
+          future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
         >
-          <MemoryRouter
-            future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-          >
-            <JobHistoryPage />
-          </MemoryRouter>
-        </AuthContainer.Provider>
-      </JobControllerContainer.Provider>
+          <JobHistoryPage jobController={jobController} />
+        </MemoryRouter>
+      </AuthContainer.Provider>
     </QueryClientProvider>,
   );
   return repositories;

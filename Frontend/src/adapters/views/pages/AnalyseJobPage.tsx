@@ -1,6 +1,5 @@
 import { useContext, useEffect, useMemo, useSyncExternalStore } from "react";
 import { AuthContainer } from "../../containers/AuthContainer";
-import { CandidateContextControllerContainer } from "../../containers/CandidateContextControllerContainer";
 import {
   AnalysisProfilesPresenter,
   AnalysisProfilesStore,
@@ -10,17 +9,36 @@ import { Link } from "react-router-dom";
 import { ArrowRight, FileText, Link2, Info, Sparkles } from "lucide-react";
 import { Button } from "../components/primitives/Button";
 import { Loading, ErrorNotice } from "../components/composed/Feedback";
+import type { CandidateContextControllerContract } from "../../../application/contracts/controllers/CandidateContextControllerContract";
+import type { JobControllerContract } from "../../../application/contracts/controllers/JobControllerContract";
+import type {
+  JobAnalysisPresentation,
+  JobPresentation,
+} from "../../presenters/JobPresenter";
+import type {
+  PrimaryContextPresentation,
+  ProfilePresentation,
+} from "../../presenters/CandidateContextPresenter";
 
 // Collect a candidate profile and job information for a new analysis.
-export function AnalyseJobPage() {
+export function AnalyseJobPage({
+  jobController,
+  candidateContextController,
+}: {
+  jobController: JobControllerContract<
+    JobPresentation,
+    JobAnalysisPresentation
+  >;
+  candidateContextController: CandidateContextControllerContract<
+    PrimaryContextPresentation,
+    ProfilePresentation[]
+  >;
+}) {
   // Bind the submission form state and event handlers supplied by its React hook.
   const { submit, form, kind, onSubmit, onSubmissionTypeChange } =
-    useAnalyseJobForm();
+    useAnalyseJobForm(jobController);
 
-  const profilesController = useContext(CandidateContextControllerContainer);
   const auth = useContext(AuthContainer);
-  if (!profilesController)
-    throw new Error("CandidateContextControllerContainer provider missing");
   if (!auth) throw new Error("AuthContainer provider missing");
 
   const userId = auth.ready && auth.authenticated ? auth.userId : null;
@@ -28,10 +46,10 @@ export function AnalyseJobPage() {
   const profilesBinding = useMemo(
     () => ({
       userId,
-      controller: profilesController,
+      controller: candidateContextController,
       presenter: new AnalysisProfilesPresenter(new AnalysisProfilesStore()),
     }),
-    [userId, profilesController],
+    [userId, candidateContextController],
   );
   const presentation = useSyncExternalStore(
     profilesBinding.presenter.store.subscribe,

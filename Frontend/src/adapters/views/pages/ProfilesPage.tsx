@@ -6,11 +6,25 @@ import {
   ErrorNotice,
   EmptyState,
 } from "../components/composed/Feedback";
+import type { CandidateContextControllerContract } from "../../../application/contracts/controllers/CandidateContextControllerContract";
+import type {
+  PrimaryContextPresentation,
+  ProfilePresentation,
+} from "../../presenters/CandidateContextPresenter";
 
 // Display saved candidate profiles with editing and deletion actions.
-export function ProfilesPage() {
+export function ProfilesPage({
+  candidateContextController,
+}: {
+  candidateContextController: CandidateContextControllerContract<
+    PrimaryContextPresentation,
+    ProfilePresentation[]
+  >;
+}) {
   // Bind presented profile cards and deletion handlers supplied by the context hook.
-  const { contexts, profiles, del, onDelete } = useProfiles();
+  const { contexts, profiles, del, onDelete } = useProfiles(
+    candidateContextController,
+  );
 
   return (
     <div>

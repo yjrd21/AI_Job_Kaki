@@ -1,19 +1,12 @@
 import { useContext, useEffect } from "react";
 import { useForm, type ResolverResult } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { AccountInputContract } from "../../application/contracts/controllers/AccountControllerContract";
-import { AccountControllerContainer } from "../containers/AccountControllerContainer";
+import type { AccountFormInput } from "../controllers/AccountController";
+import type { AccountController } from "../controllers/AccountController";
 import { AuthContainer } from "../containers/AuthContainer";
 
 // Load account details using the cache shared with onboarding checks.
-export function useAccount() {
-  // Read the injected controller that handles account input and application access.
-  const controller = useContext(AccountControllerContainer);
-
-  if (!controller) {
-    throw new Error("AccountControllerContainer provider missing");
-  }
-
+export function useAccount(controller: AccountController) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useContext(AuthContainer);
 
@@ -31,14 +24,7 @@ export function useAccount() {
 }
 
 // Save account changes and refresh the shared account query.
-export function useSaveAccount() {
-  // Read the injected controller that handles account input and application access.
-  const controller = useContext(AccountControllerContainer);
-
-  if (!controller) {
-    throw new Error("AccountControllerContainer provider missing");
-  }
-
+export function useSaveAccount(controller: AccountController) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useContext(AuthContainer);
 
@@ -52,7 +38,7 @@ export function useSaveAccount() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (update: AccountInputContract) =>
+    mutationFn: (update: AccountFormInput) =>
       controller.saveAccount(userId!, update),
     onSuccess: () =>
       void queryClient.invalidateQueries({ queryKey: ["account", userId] }),
@@ -60,20 +46,13 @@ export function useSaveAccount() {
 }
 
 // Connect account form state, controller validation, and query results to React.
-export function useAccountForm() {
+export function useAccountForm(controller: AccountController) {
   // Load the account data used to populate the form.
-  const query = useAccount();
-
-  // Read account input validation through the layer 2 controller contract.
-  const controller = useContext(AccountControllerContainer);
-
-  if (!controller) {
-    throw new Error("AccountControllerContainer provider missing");
-  }
+  const query = useAccount(controller);
 
   // Translate controller validation feedback into React Hook Form field errors.
-  const form = useForm<AccountInputContract>({
-    resolver: (values): ResolverResult<AccountInputContract> => {
+  const form = useForm<AccountFormInput>({
+    resolver: (values): ResolverResult<AccountFormInput> => {
       // Validate form values without importing the concrete controller or Zod.
       const validation = controller.validateAccount(values);
 
@@ -112,7 +91,7 @@ export function useAccountForm() {
   }, [query.data, form]);
 
   // Prepare the account update mutation and its feedback state.
-  const save = useSaveAccount();
+  const save = useSaveAccount(controller);
 
   // Submit validated form values through the account mutation.
   const onSubmit = form.handleSubmit((values) => save.mutate(values));

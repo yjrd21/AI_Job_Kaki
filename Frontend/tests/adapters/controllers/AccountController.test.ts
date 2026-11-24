@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import { AccountController } from "../../../src/adapters/controllers/AccountController";
-import type { AccountControllerContract } from "../../../src/application/contracts/controllers/AccountControllerContract";
 import { account } from "../../fixtures/application";
 
 function setup() {
@@ -9,9 +8,7 @@ function setup() {
     saveAccount: vi.fn().mockResolvedValue(account),
     completeOnboarding: vi.fn().mockResolvedValue(account),
   };
-  const controller: AccountControllerContract = new AccountController(
-    accountApi,
-  );
+  const controller = new AccountController(accountApi);
   return { controller, accountApi };
 }
 const input = {
@@ -45,7 +42,7 @@ describe("AccountController", () => {
     });
   });
 
-  it("reports malformed input through the validation contract", () => {
+  it("reports malformed input through the validation result", () => {
     const { controller } = setup();
     expect(controller.validateAccount(null)).toMatchObject({
       valid: false,

@@ -1,4 +1,3 @@
-import { CandidateContextControllerContainer } from "../../../../src/adapters/containers/CandidateContextControllerContainer";
 import {
   act,
   fireEvent,
@@ -10,7 +9,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { AnalyseJobPage } from "../../../../src/adapters/views/pages/AnalyseJobPage";
-import { JobControllerContainer } from "../../../../src/adapters/containers/JobControllerContainer";
 import { AuthContainerProvider } from "../../../../src/infrastructure/providers/AuthContainerProvider";
 import {
   makeControllers,
@@ -37,30 +35,29 @@ function renderAnalyse(
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <CandidateContextControllerContainer.Provider
-        value={candidateContextController}
-      >
-        <JobControllerContainer.Provider value={jobController}>
-          <AuthContainerProvider session={session}>
-            <MemoryRouter
-              initialEntries={[path]}
-              future={{
-                v7_startTransition: true,
-                v7_relativeSplatPath: true,
-              }}
-            >
-              <CurrentRoute />
-              <Routes>
-                <Route path="/analyse" element={<AnalyseJobPage />} />
-                <Route
-                  path="/jobs/:jobId"
-                  element={<h1>Submission created</h1>}
+      <AuthContainerProvider session={session}>
+        <MemoryRouter
+          initialEntries={[path]}
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true,
+          }}
+        >
+          <CurrentRoute />
+          <Routes>
+            <Route
+              path="/analyse"
+              element={
+                <AnalyseJobPage
+                  jobController={jobController}
+                  candidateContextController={candidateContextController}
                 />
-              </Routes>
-            </MemoryRouter>
-          </AuthContainerProvider>
-        </JobControllerContainer.Provider>
-      </CandidateContextControllerContainer.Provider>
+              }
+            />
+            <Route path="/jobs/:jobId" element={<h1>Submission created</h1>} />
+          </Routes>
+        </MemoryRouter>
+      </AuthContainerProvider>
     </QueryClientProvider>,
   );
   return repositories;
