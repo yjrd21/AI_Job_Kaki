@@ -4,7 +4,13 @@ import type {
   AccountInputContract,
   AccountValidationContract,
 } from "../../application/contracts/controllers/AccountControllerContract";
-import type { ApplicationContract } from "../../application/contracts/ApplicationContract";
+import type { User, UserUpdate } from "../../domain/models/User";
+
+type AccountControllerDependencies = {
+  completeOnboarding(userId: string): Promise<User>;
+  getAccount(userId: string): Promise<User>;
+  saveAccount(userId: string, update: UserUpdate): Promise<User>;
+};
 
 // Validate the account names and email before submitting an update.
 const accountFormSchema = z.object({
@@ -13,21 +19,18 @@ const accountFormSchema = z.object({
   email: z.string().email("Enter a valid email"),
 });
 
-// Implement account input validation and invoke the injected application API.
+// Implement account input validation and invoke the injected account operations.
 export class AccountController implements AccountControllerContract {
-  // Receive account operations without constructing use cases or repositories.
-  constructor(
-    private readonly application: Pick<ApplicationContract, "account">,
-  ) {}
+  constructor(private readonly dependencies: AccountControllerDependencies) {}
 
-  // Record account onboarding completion through the application API.
+  // Record account onboarding completion.
   completeOnboarding(userId: string) {
-    return this.application.account.completeOnboarding(userId);
+    return this.dependencies.completeOnboarding(userId);
   }
 
-  // Retrieve account details through the application API.
+  // Retrieve account details.
   getAccount(userId: string) {
-    return this.application.account.get(userId);
+    return this.dependencies.getAccount(userId);
   }
 
   // Translate Zod validation results into library-independent field feedback.
@@ -51,11 +54,11 @@ export class AccountController implements AccountControllerContract {
     };
   }
 
-  // Validate and adapt account input before calling the application save operation.
+  // Validate and adapt account input before invoking the save operation.
   async saveAccount(userId: string, input: AccountInputContract) {
     // Parse again at the controller boundary so callers cannot bypass validation.
     const update = accountFormSchema.parse(input);
 
-    return this.application.account.save(userId, update);
+    return this.dependencies.saveAccount(userId, update);
   }
 }

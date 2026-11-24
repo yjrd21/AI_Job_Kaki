@@ -1,11 +1,25 @@
-import type { JobSubmission, JobAnalysis } from "../../domain/models/Job";
+import type {
+  JobAnalysis,
+  JobSubmission,
+  JobSubmissionInput,
+} from "../../domain/models/Job";
 import { z } from "zod";
 import type {
   JobControllerContract,
   JobInputContract,
   JobValidationContract,
 } from "../../application/contracts/controllers/JobControllerContract";
-import type { ApplicationContract } from "../../application/contracts/ApplicationContract";
+
+type JobControllerDependencies<
+  TJob extends JobSubmission,
+  TAnalysis extends JobAnalysis,
+> = {
+  submitJob(userId: string, input: JobSubmissionInput): Promise<TJob>;
+  listJobs(userId: string): Promise<TJob[]>;
+  getJob(userId: string, jobId: string): Promise<TJob>;
+  getAnalysis(analysisId: string): Promise<TAnalysis>;
+  deleteJob(userId: string, jobId: string): Promise<void>;
+};
 
 // Validate the submission mode, selected profile, and trimmed job information.
 const jobFormSchema = z.object({
@@ -16,17 +30,13 @@ const jobFormSchema = z.object({
   jobContext: z.string().trim().min(3, "Enter the job information"),
 });
 
-// Implement job input validation and invoke the injected application API.
+// Validate job input and invoke the injected use cases.
 export class JobController<
   TJob extends JobSubmission,
   TAnalysis extends JobAnalysis,
 > implements JobControllerContract<TJob, TAnalysis> {
-  // Receive job and analysis operations without constructing use cases or repositories.
   constructor(
-    private readonly application: Pick<
-      ApplicationContract<TJob, TAnalysis>,
-      "jobs" | "analyses"
-    >,
+    private readonly dependencies: JobControllerDependencies<TJob, TAnalysis>,
   ) {}
 
   // Translate Zod validation results into library-independent field feedback.
@@ -50,31 +60,31 @@ export class JobController<
     };
   }
 
-  // Validate and prepare submission input before invoking the application API.
+  // Validate and prepare submission input before invoking the submit use case.
   async submitJob(userId: string, input: JobInputContract) {
     // Parse at the controller boundary so every caller receives the same input checks and trimming.
     const submission = jobFormSchema.parse(input);
 
-    return this.application.jobs.submit(userId, submission);
+    return this.dependencies.submitJob(userId, submission);
   }
 
-  // Retrieve the signed-in user's submission history through the application API.
+  // Retrieve the signed-in user's submission history.
   listJobs(userId: string) {
-    return this.application.jobs.list(userId);
+    return this.dependencies.listJobs(userId);
   }
 
-  // Retrieve the current state of a user-owned submission through the application API.
+  // Retrieve the current state of a user-owned submission.
   getJob(userId: string, jobId: string) {
-    return this.application.jobs.get(userId, jobId);
+    return this.dependencies.getJob(userId, jobId);
   }
 
   // Retrieve the saved report referenced by a completed submission.
   getAnalysis(analysisId: string) {
-    return this.application.analyses.get(analysisId);
+    return this.dependencies.getAnalysis(analysisId);
   }
 
-  // Delete a user-owned submission through the application API.
+  // Delete a user-owned submission.
   deleteJob(userId: string, jobId: string) {
-    return this.application.jobs.delete(userId, jobId);
+    return this.dependencies.deleteJob(userId, jobId);
   }
 }

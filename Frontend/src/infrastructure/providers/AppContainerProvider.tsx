@@ -7,7 +7,6 @@ import {
   type ReactNode,
 } from "react";
 import { AccountControllerContainer } from "../../adapters/containers/AccountControllerContainer";
-import { ApplicationContainer } from "../../adapters/containers/ApplicationContainer";
 import { AuthContainerProvider } from "./AuthContainerProvider";
 import { JobControllerContainer } from "../../adapters/containers/JobControllerContainer";
 import { createQueryClient } from "../clients/createQueryClient";
@@ -15,7 +14,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 
 // Describe the constructed dependencies required to assemble the React providers.
 type AppContainerProviderProps = {
-  application: NonNullable<ContextType<typeof ApplicationContainer>>;
   accountController: NonNullable<
     ContextType<typeof AccountControllerContainer>
   >;
@@ -32,7 +30,6 @@ type AppContainerProviderProps = {
 
 // Wire application dependencies into the React tree at the composition root.
 export function AppContainerProvider({
-  application,
   accountController,
   jobController,
   candidateContextController,
@@ -45,23 +42,21 @@ export function AppContainerProvider({
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ApplicationContainer.Provider value={application}>
-        <AccountControllerContainer.Provider value={accountController}>
-          <JobControllerContainer.Provider value={jobController}>
-            <CandidateContextControllerContainer.Provider
-              value={candidateContextController}
+      <AccountControllerContainer.Provider value={accountController}>
+        <JobControllerContainer.Provider value={jobController}>
+          <CandidateContextControllerContainer.Provider
+            value={candidateContextController}
+          >
+            <OnboardingControllerContainer.Provider
+              value={onboardingController}
             >
-              <OnboardingControllerContainer.Provider
-                value={onboardingController}
-              >
-                <AuthContainerProvider session={authSession}>
-                  {children}
-                </AuthContainerProvider>
-              </OnboardingControllerContainer.Provider>
-            </CandidateContextControllerContainer.Provider>
-          </JobControllerContainer.Provider>
-        </AccountControllerContainer.Provider>
-      </ApplicationContainer.Provider>
+              <AuthContainerProvider session={authSession}>
+                {children}
+              </AuthContainerProvider>
+            </OnboardingControllerContainer.Provider>
+          </CandidateContextControllerContainer.Provider>
+        </JobControllerContainer.Provider>
+      </AccountControllerContainer.Provider>
     </QueryClientProvider>
   );
 }

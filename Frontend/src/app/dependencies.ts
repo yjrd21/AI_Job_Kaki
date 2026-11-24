@@ -4,7 +4,6 @@ import { CandidateContextController } from "../adapters/controllers/CandidateCon
 import { JobPresenter } from "../adapters/presenters/JobPresenter";
 import { JobController } from "../adapters/controllers/JobController";
 import { AccountController } from "../adapters/controllers/AccountController";
-import { createApplication } from "./createApplication";
 import { HttpUserRepository } from "../adapters/repositories/HttpUserRepository";
 import { HttpCandidateContextRepository } from "../adapters/repositories/HttpCandidateContextRepository";
 import { HttpJobRepository } from "../adapters/repositories/HttpJobRepository";
@@ -13,6 +12,29 @@ import { KeycloakAuthClient } from "../adapters/clients/KeycloakAuthClient";
 import { createKeycloakSdk } from "../infrastructure/keycloak/createKeycloakSdk";
 import { createHttpClient } from "../infrastructure/clients/createHttpClient";
 import { env } from "../infrastructure/config/env";
+import {
+  completeOnboarding,
+  getAccount,
+  saveAccount,
+} from "../application/use-cases/accountUseCases";
+import {
+  deleteCandidateContext,
+  getCandidateContext,
+  getPrimaryCandidateContext,
+  listCandidateContexts,
+  loadAnalysisProfiles,
+  presentCandidateContextEditor,
+  presentCandidateProfiles,
+  saveCandidateContext,
+} from "../application/use-cases/candidateContextUseCases";
+import { getAnalysis } from "../application/use-cases/analysisUseCases";
+import {
+  deleteJob,
+  getJob,
+  listJobs,
+  submitJob,
+} from "../application/use-cases/jobUseCases";
+import { finishOnboarding } from "../application/use-cases/onboardingUseCases";
 
 // Construct authentication session with environment configuration
 export const authSession = new KeycloakAuthClient(
@@ -32,31 +54,55 @@ const http = createHttpClient(env.apiBaseUrl, () =>
   authSession.getAccessToken(),
 );
 
-// Construct the stateless job presenter supplied to the use-case output boundary.
+// Construct repositories and presenters at the application composition root.
+const userRepository = new HttpUserRepository(http);
+const contextRepository = new HttpCandidateContextRepository(http);
+const jobRepository = new HttpJobRepository(http);
+const analysisRepository = new HttpAnalysisRepository(http);
 const jobPresenter = new JobPresenter();
+const candidateContextPresenter = new CandidateContextPresenter();
 
-// Initialize application with repositories connected to HTTP client
-export const application = createApplication(
-  {
-    users: new HttpUserRepository(http),
-    contexts: new HttpCandidateContextRepository(http),
-    jobs: new HttpJobRepository(http),
-    analyses: new HttpAnalysisRepository(http),
-  },
-  jobPresenter,
-  new CandidateContextPresenter(),
-);
+export const accountController = new AccountController({
+  completeOnboarding: (userId) => completeOnboarding(userRepository, userId),
+  getAccount: (userId) => getAccount(userRepository, userId),
+  saveAccount: (userId, update) => saveAccount(userRepository, userId, update),
+});
 
-// Construct the account controller with the application API supplied at startup.
-export const accountController = new AccountController(application);
+export const jobController = new JobController({
+  submitJob: (userId, input) =>
+    submitJob(jobRepository, jobPresenter, userId, input),
+  listJobs: (userId) => listJobs(jobRepository, jobPresenter, userId),
+  getJob: (userId, jobId) => getJob(jobRepository, jobPresenter, userId, jobId),
+  getAnalysis: (id) => getAnalysis(analysisRepository, jobPresenter, id),
+  deleteJob: (userId, jobId) =>
+    deleteJob(jobRepository, jobPresenter, userId, jobId),
+});
 
-// Construct the job controller with the application API supplied at startup.
-export const jobController = new JobController(application);
+export const candidateContextController = new CandidateContextController({
+  getContext: (userId, id) =>
+    getCandidateContext(contextRepository, userId, id),
+  saveContext: (userId, input, id) =>
+    saveCandidateContext(contextRepository, userId, input, id),
+  deleteContext: (userId, id) =>
+    deleteCandidateContext(contextRepository, userId, id),
+  getProfiles: (contexts) =>
+    presentCandidateProfiles(contexts, candidateContextPresenter),
+  getEditorValues: (context) =>
+    presentCandidateContextEditor(context, candidateContextPresenter),
+  listContexts: (userId) => listCandidateContexts(contextRepository, userId),
+  loadAnalysisProfiles: (userId, output) =>
+    loadAnalysisProfiles(contextRepository, userId, output),
+  getPrimaryContext: (contexts) =>
+    getPrimaryCandidateContext(contexts, candidateContextPresenter),
+});
 
-// Construct the candidate context controller with the application API supplied at startup.
-export const candidateContextController = new CandidateContextController(
-  application,
-);
-
-// Construct the onboarding controller with the coordinated application API.
-export const onboardingController = new OnboardingController(application);
+export const onboardingController = new OnboardingController({
+  finishOnboarding: (userId, input, progress) =>
+    finishOnboarding(
+      contextRepository,
+      userRepository,
+      userId,
+      input,
+      progress,
+    ),
+});

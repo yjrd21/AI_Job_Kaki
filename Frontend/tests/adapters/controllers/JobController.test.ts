@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { JobControllerContract } from "../../../src/application/contracts/controllers/JobControllerContract";
-import { job, makeApplication } from "../../fixtures/application";
+import { job, makeControllers } from "../../fixtures/application";
 
 const input = {
   submissionType: "TEXT" as const,
@@ -10,7 +10,7 @@ const input = {
 
 describe("JobController", () => {
   it("returns plain field feedback without invoking the application API", () => {
-    const { jobController, repositories } = makeApplication();
+    const { jobController, repositories } = makeControllers();
     const controller: JobControllerContract = jobController;
     expect(
       controller.validateJob({
@@ -31,7 +31,7 @@ describe("JobController", () => {
   });
 
   it("reports malformed input through its validation contract", () => {
-    const { jobController } = makeApplication();
+    const { jobController } = makeControllers();
     expect(jobController.validateJob(null)).toMatchObject({
       valid: false,
       formError: expect.any(String),
@@ -39,7 +39,7 @@ describe("JobController", () => {
   });
 
   it("trims and validates the values returned to the form", () => {
-    const { jobController } = makeApplication();
+    const { jobController } = makeControllers();
     expect(
       jobController.validateJob({
         ...input,
@@ -49,7 +49,7 @@ describe("JobController", () => {
   });
 
   it("rejects invalid direct submissions before invoking the application API", async () => {
-    const { jobController, repositories } = makeApplication();
+    const { jobController, repositories } = makeControllers();
     await expect(
       jobController.submitJob("user-id", { ...input, jobContext: "   " }),
     ).rejects.toThrow();
@@ -59,7 +59,7 @@ describe("JobController", () => {
   it.each(["TEXT", "URL"] as const)(
     "prepares %s submissions even when form validation is bypassed",
     async (submissionType) => {
-      const { jobController, repositories } = makeApplication();
+      const { jobController, repositories } = makeControllers();
       const jobContext =
         submissionType === "TEXT"
           ? "Job description"

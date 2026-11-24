@@ -8,7 +8,7 @@ import { AuthContainerProvider } from "../../../../src/infrastructure/providers/
 import {
   analysis,
   job,
-  makeApplication,
+  makeControllers,
   makeSession,
 } from "../../../fixtures/application";
 import type {
@@ -22,7 +22,7 @@ function showResult(
   reportError?: Error,
   report: Partial<JobAnalysis> = {},
 ) {
-  const { jobController, jobPresenter, repositories } = makeApplication();
+  const { jobController, jobPresenter, repositories } = makeControllers();
   repositories.jobs.get.mockResolvedValue({ ...job, ...update });
   repositories.analyses.get.mockResolvedValue({ ...analysis, ...report });
   if (requestError) repositories.jobs.get.mockRejectedValue(requestError);

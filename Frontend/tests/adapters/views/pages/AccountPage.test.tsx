@@ -6,12 +6,12 @@ import { AccountControllerContainer } from "../../../../src/adapters/containers/
 import { AuthContainerProvider } from "../../../../src/infrastructure/providers/AuthContainerProvider";
 import {
   account,
-  makeApplication,
+  makeControllers,
   makeSession,
 } from "../../../fixtures/application";
 
 async function showAccount() {
-  const { accountController, repositories } = makeApplication();
+  const { accountController, repositories } = makeControllers();
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });

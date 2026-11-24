@@ -7,13 +7,13 @@ import { JobControllerContainer } from "../../../../src/adapters/containers/JobC
 import { AuthContainer } from "../../../../src/adapters/containers/AuthContainer";
 import {
   job,
-  makeApplication,
+  makeControllers,
   makeSession,
   signedIn,
 } from "../../../fixtures/application";
 
 function showHistory() {
-  const { jobController, repositories } = makeApplication();
+  const { jobController, repositories } = makeControllers();
   const session = makeSession();
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },

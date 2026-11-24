@@ -5,7 +5,6 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApplicationContainer } from "../../../../src/adapters/containers/ApplicationContainer";
 import { AuthContainerProvider } from "../../../../src/infrastructure/providers/AuthContainerProvider";
 import {
   useJob,
@@ -26,7 +25,7 @@ import {
   useSaveContext,
 } from "../../../../src/adapters/hooks/useContexts";
 import {
-  makeApplication,
+  makeControllers,
   makeSession,
   job,
   account,
@@ -35,13 +34,12 @@ import {
 
 function setup() {
   const {
-    application,
     candidateContextController,
     accountController,
     jobController,
     jobPresenter,
     repositories,
-  } = makeApplication();
+  } = makeControllers();
   const session = makeSession();
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -51,19 +49,17 @@ function setup() {
   function wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        <ApplicationContainer.Provider value={application}>
-          <CandidateContextControllerContainer.Provider
-            value={candidateContextController}
-          >
-            <AccountControllerContainer.Provider value={accountController}>
-              <JobControllerContainer.Provider value={jobController}>
-                <AuthContainerProvider session={session}>
-                  {children}
-                </AuthContainerProvider>
-              </JobControllerContainer.Provider>
-            </AccountControllerContainer.Provider>
-          </CandidateContextControllerContainer.Provider>
-        </ApplicationContainer.Provider>
+        <CandidateContextControllerContainer.Provider
+          value={candidateContextController}
+        >
+          <AccountControllerContainer.Provider value={accountController}>
+            <JobControllerContainer.Provider value={jobController}>
+              <AuthContainerProvider session={session}>
+                {children}
+              </AuthContainerProvider>
+            </JobControllerContainer.Provider>
+          </AccountControllerContainer.Provider>
+        </CandidateContextControllerContainer.Provider>
       </QueryClientProvider>
     );
   }

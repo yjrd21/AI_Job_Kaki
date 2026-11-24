@@ -5,13 +5,13 @@ import { account } from "../../fixtures/application";
 
 function setup() {
   const accountApi = {
-    get: vi.fn().mockResolvedValue(account),
-    save: vi.fn().mockResolvedValue(account),
+    getAccount: vi.fn().mockResolvedValue(account),
+    saveAccount: vi.fn().mockResolvedValue(account),
     completeOnboarding: vi.fn().mockResolvedValue(account),
   };
-  const controller: AccountControllerContract = new AccountController({
-    account: accountApi,
-  });
+  const controller: AccountControllerContract = new AccountController(
+    accountApi,
+  );
   return { controller, accountApi };
 }
 const input = {
@@ -38,7 +38,7 @@ describe("AccountController", () => {
       },
       formError: undefined,
     });
-    expect(accountApi.save).not.toHaveBeenCalled();
+    expect(accountApi.saveAccount).not.toHaveBeenCalled();
     expect(controller.validateAccount(input)).toEqual({
       valid: true,
       values: input,
@@ -58,15 +58,18 @@ describe("AccountController", () => {
     await expect(
       controller.saveAccount("user-id", { ...input, email: "invalid" }),
     ).rejects.toThrow();
-    expect(accountApi.save).not.toHaveBeenCalled();
+    expect(accountApi.saveAccount).not.toHaveBeenCalled();
   });
 
   it("passes only validated account fields to the application and returns its result", async () => {
     const { controller, accountApi } = setup();
     const submitted = { ...input, onboardingCompleted: true };
     expect(await controller.saveAccount("user-id", submitted)).toBe(account);
-    expect(accountApi.save).toHaveBeenCalledExactlyOnceWith("user-id", input);
+    expect(accountApi.saveAccount).toHaveBeenCalledExactlyOnceWith(
+      "user-id",
+      input,
+    );
     expect(await controller.getAccount("user-id")).toBe(account);
-    expect(accountApi.get).toHaveBeenCalledWith("user-id");
+    expect(accountApi.getAccount).toHaveBeenCalledWith("user-id");
   });
 });

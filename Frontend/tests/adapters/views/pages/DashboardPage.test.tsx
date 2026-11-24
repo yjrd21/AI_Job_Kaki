@@ -12,21 +12,20 @@ import { describe, expect, it } from "vitest";
 import { DashboardPage } from "../../../../src/adapters/views/pages/DashboardPage";
 import { CandidateContextControllerContainer } from "../../../../src/adapters/containers/CandidateContextControllerContainer";
 import { JobControllerContainer } from "../../../../src/adapters/containers/JobControllerContainer";
-import { ApplicationContainer } from "../../../../src/adapters/containers/ApplicationContainer";
 import { AuthContainer } from "../../../../src/adapters/containers/AuthContainer";
 import {
   useContexts,
   usePrimaryContext,
 } from "../../../../src/adapters/hooks/useContexts";
 import {
-  makeApplication,
+  makeControllers,
   makeSession,
   profile,
   signedIn,
 } from "../../../fixtures/application";
 
 function setup() {
-  const dependencies = makeApplication();
+  const dependencies = makeControllers();
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false, staleTime: Infinity, gcTime: 0 },
@@ -36,24 +35,22 @@ function setup() {
   function wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        <ApplicationContainer.Provider value={dependencies.application}>
-          <CandidateContextControllerContainer.Provider
-            value={dependencies.candidateContextController}
-          >
-            <JobControllerContainer.Provider value={dependencies.jobController}>
-              <AuthContainer.Provider
-                value={{
-                  ...signedIn,
-                  ready: true,
-                  login: session.login,
-                  logout: session.logout,
-                }}
-              >
-                <MemoryRouter>{children}</MemoryRouter>
-              </AuthContainer.Provider>
-            </JobControllerContainer.Provider>
-          </CandidateContextControllerContainer.Provider>
-        </ApplicationContainer.Provider>
+        <CandidateContextControllerContainer.Provider
+          value={dependencies.candidateContextController}
+        >
+          <JobControllerContainer.Provider value={dependencies.jobController}>
+            <AuthContainer.Provider
+              value={{
+                ...signedIn,
+                ready: true,
+                login: session.login,
+                logout: session.logout,
+              }}
+            >
+              <MemoryRouter>{children}</MemoryRouter>
+            </AuthContainer.Provider>
+          </JobControllerContainer.Provider>
+        </CandidateContextControllerContainer.Provider>
       </QueryClientProvider>
     );
   }

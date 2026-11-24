@@ -1,7 +1,8 @@
-import type { ApplicationContract } from "../../application/contracts/ApplicationContract";
 import type { CandidateContextControllerContract } from "../../application/contracts/controllers/CandidateContextControllerContract";
-import type { CandidateContext } from "../../domain/models/CandidateContext";
-import type { JobSubmission, JobAnalysis } from "../../domain/models/Job";
+import type {
+  CandidateContext,
+  CandidateContextInput,
+} from "../../domain/models/CandidateContext";
 import { z } from "zod";
 import { listFromLines } from "../views/utils/textUtils";
 import type {
@@ -9,7 +10,24 @@ import type {
   CandidateContextFormContract,
   CandidateContextValidationContract,
 } from "../../application/contracts/controllers/CandidateContextControllerContract";
-import type { CandidateContextInput } from "../../domain/models/CandidateContext";
+
+type CandidateContextControllerDependencies<TOutput, TProfiles> = {
+  getContext(userId: string, id: string): Promise<CandidateContext>;
+  saveContext(
+    userId: string,
+    input: CandidateContextInput,
+    id?: string,
+  ): Promise<CandidateContext>;
+  deleteContext(userId: string, id: string): Promise<void>;
+  getProfiles(contexts: CandidateContext[]): TProfiles;
+  getEditorValues(context: CandidateContext): CandidateContextFormContract;
+  listContexts(userId: string): Promise<CandidateContext[]>;
+  loadAnalysisProfiles(
+    userId: string,
+    output: AnalysisProfilesOutputContract,
+  ): Promise<void>;
+  getPrimaryContext(contexts: CandidateContext[]): TOutput;
+};
 
 // Validate multiline profile input before creating the application payload.
 const schema = z.object({
@@ -23,16 +41,15 @@ const schema = z.object({
   redFlags: z.string(),
 });
 
-// Delegate candidate context retrieval and primary selection to the application API.
+// Delegate candidate context operations to the injected use cases and presenters.
 export class CandidateContextController<
   TOutput,
   TProfiles,
 > implements CandidateContextControllerContract<TOutput, TProfiles> {
-  // Receive context operations without constructing repositories or presenters.
   constructor(
-    private readonly application: Pick<
-      ApplicationContract<JobSubmission, JobAnalysis, TOutput, TProfiles>,
-      "contexts"
+    private readonly dependencies: CandidateContextControllerDependencies<
+      TOutput,
+      TProfiles
     >,
   ) {}
 
@@ -69,43 +86,43 @@ export class CandidateContextController<
     };
   }
 
-  // Load one candidate context through the application API.
+  // Load one candidate context.
   getContext(userId: string, id: string) {
-    return this.application.contexts.get(userId, id);
+    return this.dependencies.getContext(userId, id);
   }
 
-  // Save candidate context fields through the application API.
+  // Save candidate context fields.
   saveContext(userId: string, input: CandidateContextInput, id?: string) {
-    return this.application.contexts.save(userId, input, id);
+    return this.dependencies.saveContext(userId, input, id);
   }
 
-  // Delete a saved candidate context through the application API.
+  // Delete a saved candidate context.
   deleteContext(userId: string, id: string) {
-    return this.application.contexts.delete(userId, id);
+    return this.dependencies.deleteContext(userId, id);
   }
 
-  // Invoke the use-case presenter boundary for profile cards.
+  // Prepare profile-card output.
   getProfiles(contexts: CandidateContext[]) {
-    return this.application.contexts.profiles(contexts);
+    return this.dependencies.getProfiles(contexts);
   }
 
-  // Invoke the use-case presenter boundary for editable profile values.
+  // Prepare editable profile values.
   getEditorValues(context: CandidateContext) {
-    return this.application.contexts.editor(context);
+    return this.dependencies.getEditorValues(context);
   }
 
   // Retrieve the signed-in user's candidate contexts without changing list order.
   listContexts(userId: string) {
-    return this.application.contexts.list(userId);
+    return this.dependencies.listContexts(userId);
   }
 
   // Request selector data without managing React state or formatting the result.
   loadAnalysisProfiles(userId: string, output: AnalysisProfilesOutputContract) {
-    return this.application.contexts.loadAnalysisProfiles(userId, output);
+    return this.dependencies.loadAnalysisProfiles(userId, output);
   }
 
-  // Invoke primary-context selection and presentation for the retrieved list.
+  // Select and present the primary context from the retrieved list.
   getPrimaryContext(contexts: CandidateContext[]) {
-    return this.application.contexts.primary(contexts);
+    return this.dependencies.getPrimaryContext(contexts);
   }
 }

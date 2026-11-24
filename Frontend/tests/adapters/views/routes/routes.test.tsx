@@ -14,9 +14,8 @@ import { describe, expect, it } from "vitest";
 import { App } from "../../../../src/app/App";
 import { router } from "../../../../src/adapters/views/routes/index";
 import { AuthContainerProvider } from "../../../../src/infrastructure/providers/AuthContainerProvider";
-import { ApplicationContainer } from "../../../../src/adapters/containers/ApplicationContainer";
 import {
-  makeApplication,
+  makeControllers,
   makeSession,
   signedIn,
   account,
@@ -29,13 +28,12 @@ async function showRoute(
   onboarded = true,
 ) {
   const {
-    application,
     accountController,
     jobController,
     candidateContextController,
     onboardingController,
     repositories,
-  } = makeApplication();
+  } = makeControllers();
   repositories.users.get.mockResolvedValue({
     ...account,
     onboardingCompleted: onboarded,
@@ -49,23 +47,21 @@ async function showRoute(
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <ApplicationContainer.Provider value={application}>
-        <AccountControllerContainer.Provider value={accountController}>
-          <JobControllerContainer.Provider value={jobController}>
-            <CandidateContextControllerContainer.Provider
-              value={candidateContextController}
+      <AccountControllerContainer.Provider value={accountController}>
+        <JobControllerContainer.Provider value={jobController}>
+          <CandidateContextControllerContainer.Provider
+            value={candidateContextController}
+          >
+            <OnboardingControllerContainer.Provider
+              value={onboardingController}
             >
-              <OnboardingControllerContainer.Provider
-                value={onboardingController}
-              >
-                <AuthContainerProvider session={session}>
-                  <App />
-                </AuthContainerProvider>
-              </OnboardingControllerContainer.Provider>
-            </CandidateContextControllerContainer.Provider>
-          </JobControllerContainer.Provider>
-        </AccountControllerContainer.Provider>
-      </ApplicationContainer.Provider>
+              <AuthContainerProvider session={session}>
+                <App />
+              </AuthContainerProvider>
+            </OnboardingControllerContainer.Provider>
+          </CandidateContextControllerContainer.Provider>
+        </JobControllerContainer.Provider>
+      </AccountControllerContainer.Provider>
     </QueryClientProvider>,
   );
   return { session, repositories };

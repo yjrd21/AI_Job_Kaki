@@ -13,14 +13,14 @@ import { OnboardingControllerContainer } from "../../../../src/adapters/containe
 import { AuthContainer } from "../../../../src/adapters/containers/AuthContainer";
 import {
   account,
-  makeApplication,
+  makeControllers,
   makeSession,
   profile,
   signedIn,
 } from "../../../fixtures/application";
 
 function setup() {
-  const dependencies = makeApplication();
+  const dependencies = makeControllers();
   const session = makeSession();
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },

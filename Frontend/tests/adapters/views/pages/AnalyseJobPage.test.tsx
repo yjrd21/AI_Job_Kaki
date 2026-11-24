@@ -11,10 +11,9 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { AnalyseJobPage } from "../../../../src/adapters/views/pages/AnalyseJobPage";
 import { JobControllerContainer } from "../../../../src/adapters/containers/JobControllerContainer";
-import { ApplicationContainer } from "../../../../src/adapters/containers/ApplicationContainer";
 import { AuthContainerProvider } from "../../../../src/infrastructure/providers/AuthContainerProvider";
 import {
-  makeApplication,
+  makeControllers,
   makeSession,
   profile,
 } from "../../../fixtures/application";
@@ -26,15 +25,11 @@ function CurrentRoute() {
 function renderAnalyse(
   path = "/analyse",
   configure?: (
-    repositories: ReturnType<typeof makeApplication>["repositories"],
+    repositories: ReturnType<typeof makeControllers>["repositories"],
   ) => void,
 ) {
-  const {
-    application,
-    candidateContextController,
-    jobController,
-    repositories,
-  } = makeApplication();
+  const { candidateContextController, jobController, repositories } =
+    makeControllers();
   configure?.(repositories);
   const session = makeSession();
   const queryClient = new QueryClient({
@@ -42,32 +37,30 @@ function renderAnalyse(
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <ApplicationContainer.Provider value={application}>
-        <CandidateContextControllerContainer.Provider
-          value={candidateContextController}
-        >
-          <JobControllerContainer.Provider value={jobController}>
-            <AuthContainerProvider session={session}>
-              <MemoryRouter
-                initialEntries={[path]}
-                future={{
-                  v7_startTransition: true,
-                  v7_relativeSplatPath: true,
-                }}
-              >
-                <CurrentRoute />
-                <Routes>
-                  <Route path="/analyse" element={<AnalyseJobPage />} />
-                  <Route
-                    path="/jobs/:jobId"
-                    element={<h1>Submission created</h1>}
-                  />
-                </Routes>
-              </MemoryRouter>
-            </AuthContainerProvider>
-          </JobControllerContainer.Provider>
-        </CandidateContextControllerContainer.Provider>
-      </ApplicationContainer.Provider>
+      <CandidateContextControllerContainer.Provider
+        value={candidateContextController}
+      >
+        <JobControllerContainer.Provider value={jobController}>
+          <AuthContainerProvider session={session}>
+            <MemoryRouter
+              initialEntries={[path]}
+              future={{
+                v7_startTransition: true,
+                v7_relativeSplatPath: true,
+              }}
+            >
+              <CurrentRoute />
+              <Routes>
+                <Route path="/analyse" element={<AnalyseJobPage />} />
+                <Route
+                  path="/jobs/:jobId"
+                  element={<h1>Submission created</h1>}
+                />
+              </Routes>
+            </MemoryRouter>
+          </AuthContainerProvider>
+        </JobControllerContainer.Provider>
+      </CandidateContextControllerContainer.Provider>
     </QueryClientProvider>,
   );
   return repositories;

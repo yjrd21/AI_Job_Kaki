@@ -5,7 +5,29 @@ import { JobPresenter } from "../../src/adapters/presenters/JobPresenter";
 import { JobController } from "../../src/adapters/controllers/JobController";
 import { AccountController } from "../../src/adapters/controllers/AccountController";
 import { vi } from "vitest";
-import { createApplication } from "../../src/app/createApplication";
+import {
+  completeOnboarding,
+  getAccount,
+  saveAccount,
+} from "../../src/application/use-cases/accountUseCases";
+import {
+  deleteCandidateContext,
+  getCandidateContext,
+  getPrimaryCandidateContext,
+  listCandidateContexts,
+  loadAnalysisProfiles,
+  presentCandidateContextEditor,
+  presentCandidateProfiles,
+  saveCandidateContext,
+} from "../../src/application/use-cases/candidateContextUseCases";
+import { getAnalysis } from "../../src/application/use-cases/analysisUseCases";
+import {
+  deleteJob,
+  getJob,
+  listJobs,
+  submitJob,
+} from "../../src/application/use-cases/jobUseCases";
+import { finishOnboarding } from "../../src/application/use-cases/onboardingUseCases";
 import type {
   AuthClientContract,
   AuthSessionContract,
@@ -76,7 +98,7 @@ export function makeSession(
     getAccessToken: vi.fn().mockResolvedValue(undefined),
   };
 }
-export function makeApplication() {
+export function makeControllers() {
   const repositories = {
     jobs: {
       list: vi.fn().mockResolvedValue([job]),
@@ -102,21 +124,55 @@ export function makeApplication() {
     },
   };
   const jobPresenter = new JobPresenter();
-  const application = createApplication(
-    repositories,
-    jobPresenter,
-    new CandidateContextPresenter(),
-  );
-  const accountController = new AccountController(application);
-  const jobController = new JobController(application);
-  const candidateContextController = new CandidateContextController(
-    application,
-  );
-  const onboardingController = new OnboardingController(application);
+  const candidateContextPresenter = new CandidateContextPresenter();
+  const accountController = new AccountController({
+    completeOnboarding: (userId) =>
+      completeOnboarding(repositories.users, userId),
+    getAccount: (userId) => getAccount(repositories.users, userId),
+    saveAccount: (userId, update) =>
+      saveAccount(repositories.users, userId, update),
+  });
+  const jobController = new JobController({
+    submitJob: (userId, input) =>
+      submitJob(repositories.jobs, jobPresenter, userId, input),
+    listJobs: (userId) => listJobs(repositories.jobs, jobPresenter, userId),
+    getJob: (userId, jobId) =>
+      getJob(repositories.jobs, jobPresenter, userId, jobId),
+    getAnalysis: (id) => getAnalysis(repositories.analyses, jobPresenter, id),
+    deleteJob: (userId, jobId) =>
+      deleteJob(repositories.jobs, jobPresenter, userId, jobId),
+  });
+  const candidateContextController = new CandidateContextController({
+    getContext: (userId, id) =>
+      getCandidateContext(repositories.contexts, userId, id),
+    saveContext: (userId, input, id) =>
+      saveCandidateContext(repositories.contexts, userId, input, id),
+    deleteContext: (userId, id) =>
+      deleteCandidateContext(repositories.contexts, userId, id),
+    getProfiles: (contexts) =>
+      presentCandidateProfiles(contexts, candidateContextPresenter),
+    getEditorValues: (context) =>
+      presentCandidateContextEditor(context, candidateContextPresenter),
+    listContexts: (userId) =>
+      listCandidateContexts(repositories.contexts, userId),
+    loadAnalysisProfiles: (userId, output) =>
+      loadAnalysisProfiles(repositories.contexts, userId, output),
+    getPrimaryContext: (contexts) =>
+      getPrimaryCandidateContext(contexts, candidateContextPresenter),
+  });
+  const onboardingController = new OnboardingController({
+    finishOnboarding: (userId, input, progress) =>
+      finishOnboarding(
+        repositories.contexts,
+        repositories.users,
+        userId,
+        input,
+        progress,
+      ),
+  });
   return {
     onboardingController,
     candidateContextController,
-    application,
     accountController,
     jobController,
     jobPresenter,

@@ -1,16 +1,24 @@
 import { listFromLines } from "../views/utils/textUtils";
-import type { ApplicationContract } from "../../application/contracts/ApplicationContract";
 import type {
   OnboardingControllerContract,
   OnboardingInputContract,
   OnboardingProgressContract,
 } from "../../application/contracts/controllers/OnboardingControllerContract";
+import type { CandidateContextInput } from "../../domain/models/CandidateContext";
+import type { User } from "../../domain/models/User";
 
-// Translate onboarding input and invoke the coordinated application workflow.
+type OnboardingControllerDependencies = {
+  finishOnboarding(
+    userId: string,
+    input: CandidateContextInput,
+    progress: OnboardingProgressContract,
+  ): Promise<User>;
+};
+
+// Translate onboarding input and invoke the coordinated onboarding use case.
 export class OnboardingController implements OnboardingControllerContract {
-  // Receive the coordinated onboarding API without constructing its dependencies.
   constructor(
-    private readonly application: Pick<ApplicationContract, "onboarding">,
+    private readonly dependencies: OnboardingControllerDependencies,
   ) {}
 
   // Require at least one target role before the user leaves the first step.
@@ -28,7 +36,7 @@ export class OnboardingController implements OnboardingControllerContract {
 
     if (error) throw new Error(error);
 
-    return this.application.onboarding.finish(
+    return this.dependencies.finishOnboarding(
       userId,
       {
         targetRoles: listFromLines(input.roles),
