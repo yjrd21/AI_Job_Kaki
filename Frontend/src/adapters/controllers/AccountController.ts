@@ -2,7 +2,6 @@ import { z } from "zod";
 import type { User, UserUpdate } from "../../domain/models/User";
 
 type AccountControllerDependencies = {
-  completeOnboarding(userId: string): Promise<User>;
   getAccount(userId: string): Promise<User>;
   saveAccount(userId: string, update: UserUpdate): Promise<User>;
 };
@@ -19,11 +18,6 @@ export type AccountFormInput = z.infer<typeof accountFormSchema>;
 // Validate account input and invoke the injected account operations.
 export class AccountController {
   constructor(private readonly dependencies: AccountControllerDependencies) {}
-
-  // Record account onboarding completion.
-  completeOnboarding(userId: string) {
-    return this.dependencies.completeOnboarding(userId);
-  }
 
   // Retrieve account details.
   getAccount(userId: string) {

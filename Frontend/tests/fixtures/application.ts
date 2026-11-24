@@ -6,7 +6,6 @@ import { JobController } from "../../src/adapters/controllers/JobController";
 import { AccountController } from "../../src/adapters/controllers/AccountController";
 import { vi } from "vitest";
 import {
-  completeOnboarding,
   getAccount,
   saveAccount,
 } from "../../src/application/use-cases/accountUseCases";
@@ -126,8 +125,6 @@ export function makeControllers() {
   const jobPresenter = new JobPresenter();
   const candidateContextPresenter = new CandidateContextPresenter();
   const accountController = new AccountController({
-    completeOnboarding: (userId) =>
-      completeOnboarding(repositories.users, userId),
     getAccount: (userId) => getAccount(repositories.users, userId),
     saveAccount: (userId, update) =>
       saveAccount(repositories.users, userId, update),
@@ -161,6 +158,7 @@ export function makeControllers() {
       getPrimaryCandidateContext(contexts, candidateContextPresenter),
   });
   const onboardingController = new OnboardingController({
+    getAccount: (userId) => getAccount(repositories.users, userId),
     finishOnboarding: (userId, input, progress) =>
       finishOnboarding(
         repositories.contexts,

@@ -13,7 +13,6 @@ import { createKeycloakSdk } from "../infrastructure/keycloak/createKeycloakSdk"
 import { createHttpClient } from "../infrastructure/clients/createHttpClient";
 import { env } from "../infrastructure/config/env";
 import {
-  completeOnboarding,
   getAccount,
   saveAccount,
 } from "../application/use-cases/accountUseCases";
@@ -63,7 +62,6 @@ const jobPresenter = new JobPresenter();
 const candidateContextPresenter = new CandidateContextPresenter();
 
 export const accountController = new AccountController({
-  completeOnboarding: (userId) => completeOnboarding(userRepository, userId),
   getAccount: (userId) => getAccount(userRepository, userId),
   saveAccount: (userId, update) => saveAccount(userRepository, userId, update),
 });
@@ -97,6 +95,7 @@ export const candidateContextController = new CandidateContextController({
 });
 
 export const onboardingController = new OnboardingController({
+  getAccount: (userId) => getAccount(userRepository, userId),
   finishOnboarding: (userId, input, progress) =>
     finishOnboarding(
       contextRepository,

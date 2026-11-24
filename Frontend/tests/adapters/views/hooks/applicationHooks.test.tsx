@@ -13,10 +13,6 @@ import {
   useSaveAccount,
 } from "../../../../src/adapters/hooks/useAccount";
 import {
-  useOnboardingStatus,
-  useCompleteOnboarding,
-} from "../../../../src/adapters/hooks/useOnboardingStatus";
-import {
   useContext,
   useContexts,
   useSaveContext,
@@ -205,14 +201,12 @@ describe("hooks with injected application operations", () => {
     ).toBe(false);
   });
 
-  it("shares account/onboarding cache and refreshes it after account and onboarding mutations", async () => {
+  it("shares account cache and refreshes it after account mutations", async () => {
     const { wrapper, repositories, accountController } = setup();
     const hook = renderHook(
       () => ({
         account: useAccount(accountController),
-        status: useOnboardingStatus(accountController),
         save: useSaveAccount(accountController),
-        complete: useCompleteOnboarding(accountController),
       }),
       { wrapper },
     );
@@ -239,19 +233,6 @@ describe("hooks with injected application operations", () => {
       lastName: account.lastName,
       email: account.email,
     });
-    repositories.users.get.mockResolvedValue({
-      ...account,
-      onboardingCompleted: true,
-    });
-    await act(async () => {
-      await hook.result.current.complete.mutateAsync();
-    });
-    await waitFor(() =>
-      expect(hook.result.current.status.data?.onboardingCompleted).toBe(true),
-    );
-    expect(repositories.users.completeOnboarding).toHaveBeenCalledWith(
-      "user-id",
-    );
   });
 
   it("refreshes both profile list and detail after an edit", async () => {

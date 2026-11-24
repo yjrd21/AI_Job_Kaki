@@ -1,8 +1,10 @@
+import { useContext } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Navigate, Outlet } from "react-router-dom";
 import { Loading, ErrorNotice } from "./Feedback";
 import { Alert } from "../primitives/Alert";
 import { Button } from "../primitives/Button";
-import { useOnboardingStatus } from "../../../hooks/useOnboardingStatus";
+import { AuthContainer } from "../../../containers/AuthContainer";
 import type { AccountController } from "../../../controllers/AccountController";
 
 /** Onboarding is account lifecycle state, not candidate-profile count. */
@@ -11,8 +13,18 @@ export function OnboardingGate({
 }: {
   accountController: AccountController;
 }) {
-  // Load the persisted onboarding flag before admitting users to the main application.
-  const account = useOnboardingStatus(accountController);
+  const auth = useContext(AuthContainer);
+
+  if (!auth) {
+    throw new Error("AuthContainer provider missing");
+  }
+
+  const { userId } = auth;
+  const account = useQuery({
+    queryKey: ["account", userId],
+    queryFn: () => accountController.getAccount(userId!),
+    enabled: !!userId,
+  });
 
   if (account.isPending)
     return (

@@ -23,6 +23,7 @@ function showHistory() {
         value={{
           ...signedIn,
           ready: true,
+          sessionVersion: 1,
           login: session.login,
           logout: session.logout,
         }}

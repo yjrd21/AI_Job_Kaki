@@ -6,7 +6,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { App } from "../../../../src/app/App";
 import { createAppRouter } from "../../../../src/adapters/views/routes";
 import { AuthContainerProvider } from "../../../../src/infrastructure/providers/AuthContainerProvider";
@@ -78,6 +78,62 @@ describe("application routes after moving the frontend", () => {
     const { router } = await showRoute("/dashboard", signedIn, false);
     await screen.findByRole("heading", { name: "Choose your target roles" });
     expect(router.state.location.pathname).toBe("/onboarding");
+  });
+
+  it("discards the previous onboarding view when the signed-in user changes", async () => {
+    const controllers = makeControllers();
+    const session = makeSession();
+    let publish!: (value: AuthSessionContract) => void;
+    vi.mocked(session.subscribe).mockImplementation((listener) => {
+      publish = listener;
+      return () => undefined;
+    });
+    let resolveAccount!: (value: typeof account) => void;
+    controllers.repositories.users.get.mockImplementation((userId) =>
+      userId === "next-user"
+        ? new Promise((resolve) => {
+            resolveAccount = resolve;
+          })
+        : Promise.resolve(account),
+    );
+    const router = createAppRouter(controllers);
+    await act(async () => {
+      await router.navigate("/onboarding");
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AuthContainerProvider session={session}>
+          <App router={router} />
+        </AuthContainerProvider>
+      </QueryClientProvider>,
+    );
+    fireEvent.change(await screen.findByLabelText("Target roles"), {
+      target: { value: "Previous user's draft" },
+    });
+    act(() => publish({ ...signedIn, userId: "next-user" }));
+    expect(
+      screen.queryByDisplayValue("Previous user's draft"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Checking onboarding status…")).toBeInTheDocument();
+    await act(async () => resolveAccount({ ...account, id: "next-user" }));
+    expect(await screen.findByLabelText("Target roles")).toHaveValue("");
+
+    fireEvent.change(screen.getByLabelText("Target roles"), {
+      target: { value: "Old session draft" },
+    });
+    act(() => {
+      publish({ ...signedIn, authenticated: false, userId: null });
+      publish({ ...signedIn, userId: "next-user" });
+    });
+    expect(
+      screen.queryByDisplayValue("Old session draft"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Checking onboarding status…")).toBeInTheDocument();
+    await act(async () => resolveAccount({ ...account, id: "next-user" }));
+    expect(await screen.findByLabelText("Target roles")).toHaveValue("");
   });
 
   it.each([

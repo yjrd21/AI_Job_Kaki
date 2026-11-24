@@ -4,6 +4,7 @@ import type { AuthSessionContract } from "../../application/contracts/clients/Au
 // Combine application session data with React readiness and authentication actions.
 export type AuthState = AuthSessionContract & {
   ready: boolean;
+  sessionVersion: number;
   login: () => Promise<void>;
   logout: () => Promise<void>;
 };

@@ -1,6 +1,6 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AuthContainer } from "../containers/AuthContainer";
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import type {
   AuthClientContract,
   AuthSessionContract,
@@ -18,33 +18,72 @@ const signedOut: AuthSessionContract = {
 // Restore the injected session and adapt its lifecycle to React state.
 export function useAuthSession(session: AuthClientContract): AuthState {
   // Start with an anonymous session while authentication is being restored.
-  const [state, setState] = useState({ ...signedOut, ready: false });
+  const [state, setState] = useState({
+    ...signedOut,
+    ready: false,
+    sessionVersion: 0,
+  });
+  const queryClient = useQueryClient();
+  const currentUserId = useRef<string | null>(null);
+  const identityVersion = useRef(0);
 
   // Restore and observe the supplied session for the lifetime of this provider effect.
   useEffect(() => {
     // Prevent an expired effect from updating state after cleanup or dependency replacement.
     let live = true;
 
-    setState({ ...signedOut, ready: false });
+    if (currentUserId.current !== null) {
+      queryClient.clear();
+      currentUserId.current = null;
+      identityVersion.current++;
+    }
+    setState({
+      ...signedOut,
+      ready: false,
+      sessionVersion: identityVersion.current,
+    });
+
+    const updateIdentity = (next: AuthSessionContract) => {
+      const nextUserId = next.authenticated ? next.userId : null;
+      if (currentUserId.current !== nextUserId) {
+        if (currentUserId.current !== null) queryClient.clear();
+        identityVersion.current++;
+      }
+      currentUserId.current = nextUserId;
+      return identityVersion.current;
+    };
 
     // Subscribe to identity changes while retaining the current initialisation state.
     const unsubscribe = session.subscribe((next) => {
-      if (live) setState((previous) => ({ ...next, ready: previous.ready }));
+      if (live) {
+        const sessionVersion = updateIdentity(next);
+        setState((previous) => ({
+          ...next,
+          ready: previous.ready,
+          sessionVersion,
+        }));
+      }
     });
 
     // Finish the initial session check or expose its failure once restoration settles.
     void session.initialise().then(
       (next) => {
-        if (live) setState({ ...next, ready: true });
+        if (live) {
+          const sessionVersion = updateIdentity(next);
+          setState({ ...next, ready: true, sessionVersion });
+        }
       },
       (error: unknown) => {
-        if (live)
+        if (live) {
+          const sessionVersion = updateIdentity(signedOut);
           setState({
             ...signedOut,
             ready: true,
+            sessionVersion,
             error:
               error instanceof Error ? error.message : "Authentication failed",
           });
+        }
       },
     );
 
@@ -53,16 +92,30 @@ export function useAuthSession(session: AuthClientContract): AuthState {
       live = false;
       unsubscribe();
     };
-  }, [session]);
+  }, [queryClient, session]);
 
   // Memoise session state and delegate login and logout to the injected contract.
   const value = useMemo<AuthState>(
     () => ({
       ...state,
       login: () => session.login(),
-      logout: () => session.logout(),
+      logout: async () => {
+        const version = identityVersion.current;
+        await session.logout();
+        if (identityVersion.current === version) {
+          queryClient.clear();
+          currentUserId.current = null;
+          identityVersion.current++;
+          const sessionVersion = identityVersion.current;
+          setState((previous) => ({
+            ...signedOut,
+            ready: previous.ready,
+            sessionVersion,
+          }));
+        }
+      },
     }),
-    [state, session],
+    [state, session, queryClient],
   );
 
   return value;

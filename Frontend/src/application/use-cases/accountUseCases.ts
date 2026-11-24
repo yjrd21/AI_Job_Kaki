@@ -10,9 +10,3 @@ export const saveAccount = (
   id: string,
   update: UserUpdate,
 ) => r.update(id, update);
-
-// Record that the user has completed the initial account setup.
-export const completeOnboarding = (
-  repo: UserRepositoryContract,
-  userId: string,
-) => repo.completeOnboarding(userId);

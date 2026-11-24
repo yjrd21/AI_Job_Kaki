@@ -6,7 +6,6 @@ function setup() {
   const accountApi = {
     getAccount: vi.fn().mockResolvedValue(account),
     saveAccount: vi.fn().mockResolvedValue(account),
-    completeOnboarding: vi.fn().mockResolvedValue(account),
   };
   const controller = new AccountController(accountApi);
   return { controller, accountApi };

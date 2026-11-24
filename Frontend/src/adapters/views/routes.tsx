@@ -62,7 +62,7 @@ function Guard() {
         </p>
       </div>
     );
-  return <Outlet />;
+  return <Outlet key={`${auth.userId}:${auth.sessionVersion}`} />;
 }
 
 // Connect controller dependencies to views at the route composition boundary.
@@ -77,7 +77,6 @@ export function createAppRouter(controllers: RouteControllers) {
           element: (
             <OnboardingPage
               onboardingController={controllers.onboardingController}
-              accountController={controllers.accountController}
             />
           ),
         },
