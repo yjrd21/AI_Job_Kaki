@@ -4,7 +4,6 @@ import { AppShell } from "./components/composed/AppShell";
 import { AuthContainer } from "../containers/AuthContainer";
 import { Loading } from "./components/composed/Feedback";
 import { LoginPage } from "./pages/LoginPage";
-import { OnboardingGate } from "./components/composed/OnboardingGate";
 import { OnboardingPage } from "./pages/OnboardingPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { AnalyseJobPage } from "./pages/AnalyseJobPage";
@@ -73,18 +72,13 @@ export function createAppRouter(controllers: RouteControllers) {
       element: <Guard />,
       children: [
         {
-          path: "/onboarding",
           element: (
             <OnboardingPage
               onboardingController={controllers.onboardingController}
             />
           ),
-        },
-        {
-          element: (
-            <OnboardingGate accountController={controllers.accountController} />
-          ),
           children: [
+            { path: "/onboarding", element: null },
             {
               element: <AppShell />,
               children: [

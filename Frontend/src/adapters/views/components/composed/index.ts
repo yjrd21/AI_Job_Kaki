@@ -4,5 +4,4 @@ export { ConfirmDialog } from "./ConfirmDialog";
 export { PageHeader } from "./PageHeader";
 export { Loading, ErrorNotice, EmptyState } from "./Feedback";
 export { StatusBadge } from "./JobStatusBadge";
-export { OnboardingGate } from "./OnboardingGate";
 export { RecentAnalysisCard } from "./RecentAnalysisCard";

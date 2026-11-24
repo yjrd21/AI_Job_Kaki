@@ -1,6 +1,12 @@
 import { useContext, useEffect, useState, useSyncExternalStore } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import {
+  Link,
+  Navigate,
+  Outlet,
+  useMatch,
+  useNavigate,
+} from "react-router-dom";
 import { ArrowLeft, ArrowRight, CheckCircle2, FileText } from "lucide-react";
 import { AuthContainer } from "../../containers/AuthContainer";
 import { Button } from "../components/primitives/Button";
@@ -10,7 +16,7 @@ import { ErrorNotice, Loading } from "../components/composed/Feedback";
 import { OnboardingPresenter } from "../../presenters/OnboardingPresenter";
 import type { OnboardingController } from "../../controllers/OnboardingController";
 
-// Render the onboarding flow and invoke its controllers directly.
+// Render onboarding and release child routes once the account has completed it.
 export function OnboardingPage({
   onboardingController,
 }: {
@@ -46,6 +52,7 @@ export function OnboardingPage({
 
   // Get the navigation function for programmatic navigation.
   const navigate = useNavigate();
+  const isOnboardingRoute = !!useMatch("/onboarding");
 
   // Render different screens based on the presenter's state.
   switch (view.screen) {
@@ -63,15 +70,32 @@ export function OnboardingPage({
       );
     case "unavailable":
       return (
-        <p role="alert">
-          Onboarding status is unavailable. Please try again after the backend
-          has been updated.
-        </p>
+        <Alert tone="danger" title="Onboarding status is unavailable">
+          <p className="mb-3">
+            We couldn't verify your onboarding status. Please try again.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (!userId) throw new Error("Onboarding requires a user ID");
+              onboardingController.loadOnboardingStatus(userId, presenter);
+            }}
+          >
+            Try again
+          </Button>
+        </Alert>
       );
     case "redirect":
-      return <Navigate to="/dashboard" replace />;
+      return isOnboardingRoute ? (
+        <Navigate to="/dashboard" replace />
+      ) : (
+        <Outlet />
+      );
     case "form":
+      if (!isOnboardingRoute) return <Navigate to="/onboarding" replace />;
+      break;
     case "complete":
+      if (!isOnboardingRoute) return <Outlet />;
       break;
   }
 

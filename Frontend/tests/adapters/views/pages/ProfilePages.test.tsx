@@ -247,9 +247,7 @@ describe("onboarding workflow from the page", () => {
       "/onboarding",
     );
 
-    await screen.findByText(
-      "Onboarding status is unavailable. Please try again after the backend has been updated.",
-    );
+    await screen.findByText("Onboarding status is unavailable");
     expect(screen.queryByLabelText("Target roles")).not.toBeInTheDocument();
   });
 
