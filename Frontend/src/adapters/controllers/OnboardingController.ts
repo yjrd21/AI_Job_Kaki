@@ -1,22 +1,25 @@
 import { listFromLines } from "../views/utils/textUtils";
-import type {
-  OnboardingControllerContract,
-  OnboardingInputContract,
-  OnboardingProgressContract,
-} from "../../application/contracts/controllers/OnboardingControllerContract";
+import type { CandidateContextForm } from "../../application/contracts/presenters/CandidateContextPresenterContract";
+import type { OnboardingProgress } from "../../application/use-cases/onboardingUseCases";
 import type { CandidateContextInput } from "../../domain/models/CandidateContext";
 import type { User } from "../../domain/models/User";
+
+export type OnboardingInput = CandidateContextForm & {
+  arrangement: string;
+  locations: string;
+  cv?: { name: string; content: string };
+};
 
 type OnboardingControllerDependencies = {
   finishOnboarding(
     userId: string,
     input: CandidateContextInput,
-    progress: OnboardingProgressContract,
+    progress: OnboardingProgress,
   ): Promise<User>;
 };
 
 // Translate onboarding input and invoke the coordinated onboarding use case.
-export class OnboardingController implements OnboardingControllerContract {
+export class OnboardingController {
   constructor(
     private readonly dependencies: OnboardingControllerDependencies,
   ) {}
@@ -27,11 +30,7 @@ export class OnboardingController implements OnboardingControllerContract {
   }
 
   // Validate all submitted roles and prepare the initial candidate context fields.
-  finish(
-    userId: string,
-    input: OnboardingInputContract,
-    progress: OnboardingProgressContract,
-  ) {
+  finish(userId: string, input: OnboardingInput, progress: OnboardingProgress) {
     const error = this.validateRoles(input.roles);
 
     if (error) throw new Error(error);

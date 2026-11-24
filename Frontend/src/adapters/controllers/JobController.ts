@@ -4,11 +4,20 @@ import type {
   JobSubmissionInput,
 } from "../../domain/models/Job";
 import { z } from "zod";
-import type {
-  JobControllerContract,
-  JobInputContract,
-  JobValidationContract,
-} from "../../application/contracts/controllers/JobControllerContract";
+
+export interface JobInput {
+  submissionType: "TEXT" | "URL";
+  candidateContextId: string;
+  jobContext: string;
+}
+
+export type JobValidation =
+  | { valid: true; values: JobInput }
+  | {
+      valid: false;
+      errors: Partial<Record<keyof JobInput, string>>;
+      formError?: string;
+    };
 
 type JobControllerDependencies<
   TJob extends JobSubmission,
@@ -34,13 +43,13 @@ const jobFormSchema = z.object({
 export class JobController<
   TJob extends JobSubmission,
   TAnalysis extends JobAnalysis,
-> implements JobControllerContract<TJob, TAnalysis> {
+> {
   constructor(
     private readonly dependencies: JobControllerDependencies<TJob, TAnalysis>,
   ) {}
 
   // Translate Zod validation results into library-independent field feedback.
-  validateJob(input: unknown): JobValidationContract {
+  validateJob(input: unknown): JobValidation {
     // Validate incoming job values without throwing for field-level errors.
     const result = jobFormSchema.safeParse(input);
 
@@ -61,7 +70,7 @@ export class JobController<
   }
 
   // Validate and prepare submission input before invoking the submit use case.
-  async submitJob(userId: string, input: JobInputContract) {
+  async submitJob(userId: string, input: JobInput) {
     // Parse at the controller boundary so every caller receives the same input checks and trimming.
     const submission = jobFormSchema.parse(input);
 

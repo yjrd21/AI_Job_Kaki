@@ -12,7 +12,7 @@ import { useJobResult } from "../../hooks/useJobs";
 import { Loading, ErrorNotice } from "../components/composed/Feedback";
 import { StatusBadge } from "../components/composed/JobStatusBadge";
 import { Button } from "../components/primitives/Button";
-import type { JobControllerContract } from "../../../application/contracts/controllers/JobControllerContract";
+import type { JobController } from "../../controllers/JobController";
 import type {
   JobAnalysisPresentation,
   JobPresentation,
@@ -22,10 +22,7 @@ import type {
 export function JobResultPage({
   jobController,
 }: {
-  jobController: JobControllerContract<
-    JobPresentation,
-    JobAnalysisPresentation
-  >;
+  jobController: JobController<JobPresentation, JobAnalysisPresentation>;
 }) {
   // Bind request state and result actions supplied by the job hook.
   const { job, result, del, heading, onDelete } = useJobResult(jobController);

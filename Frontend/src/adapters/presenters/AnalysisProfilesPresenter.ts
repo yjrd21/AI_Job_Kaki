@@ -1,4 +1,4 @@
-import type { AnalysisProfilesOutputContract } from "../../application/contracts/controllers/CandidateContextControllerContract";
+import type { AnalysisProfilesOutput } from "../../application/use-cases/candidateContextUseCases";
 
 export type AnalysisProfilesViewState = {
   readonly profiles: {
@@ -47,7 +47,7 @@ export class AnalysisProfilesPresenter {
 
   // Each request receives its own output boundary; cancelled/older outcomes are ignored.
   createRequest(): {
-    output: AnalysisProfilesOutputContract;
+    output: AnalysisProfilesOutput;
     cancel: () => void;
   } {
     const version = ++this.requestVersion;

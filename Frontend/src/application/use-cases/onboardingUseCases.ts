@@ -1,7 +1,10 @@
 import type { CandidateContextRepositoryContract } from "../contracts/repositories/CandidateContextRepositoryContract";
 import type { UserRepositoryContract } from "../contracts/repositories/UserRepositoryContract";
 import type { CandidateContextInput } from "../../domain/models/CandidateContext";
-import type { OnboardingProgressContract } from "../contracts/controllers/OnboardingControllerContract";
+
+export type OnboardingProgress = {
+  contextId: string | null;
+};
 
 // Create the initial context before completing onboarding, retaining creation progress for retries.
 export async function finishOnboarding(
@@ -9,7 +12,7 @@ export async function finishOnboarding(
   users: UserRepositoryContract,
   userId: string,
   input: CandidateContextInput,
-  progress: OnboardingProgressContract,
+  progress: OnboardingProgress,
 ) {
   if (!progress.contextId) {
     const context = await contexts.create(userId, input);

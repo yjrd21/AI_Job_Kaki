@@ -1,8 +1,13 @@
-import type { AnalysisProfilesOutputContract } from "../contracts/controllers/CandidateContextControllerContract";
 import type { CandidateContext } from "../../domain/models/CandidateContext";
 import type { CandidateContextPresenterContract } from "../contracts/presenters/CandidateContextPresenterContract";
 import type { CandidateContextRepositoryContract } from "../contracts/repositories/CandidateContextRepositoryContract";
 import type { CandidateContextInput } from "../../domain/models/CandidateContext";
+
+export type AnalysisProfilesOutput = {
+  presentLoading(): void;
+  presentContexts(contexts: CandidateContext[]): void;
+  presentFailure(error: unknown): void;
+};
 
 // Retrieve the candidate profiles belonging to the specified user.
 export const listCandidateContexts = (
@@ -65,7 +70,7 @@ export function presentCandidateContextEditor<TOutput, TProfiles>(
 export async function loadAnalysisProfiles(
   repository: Pick<CandidateContextRepositoryContract, "list">,
   userId: string,
-  output: AnalysisProfilesOutputContract,
+  output: AnalysisProfilesOutput,
 ): Promise<void> {
   output.presentLoading();
 

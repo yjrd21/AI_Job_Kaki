@@ -1,6 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm, type ResolverResult } from "react-hook-form";
-import type { CandidateContextFormContract } from "../../application/contracts/controllers/CandidateContextControllerContract";
 import { fileToBase64 } from "../views/utils/fileUtils";
 import {
   useCallback,
@@ -15,19 +14,20 @@ import type {
   CandidateContext,
   CandidateContextInput,
 } from "../../domain/models/CandidateContext";
-import type { CandidateContextControllerContract } from "../../application/contracts/controllers/CandidateContextControllerContract";
+import type { CandidateContextController } from "../controllers/CandidateContextController";
+import type { CandidateContextForm } from "../../application/contracts/presenters/CandidateContextPresenterContract";
 import type {
   PrimaryContextPresentation,
   ProfilePresentation,
 } from "../presenters/CandidateContextPresenter";
 
-type CandidateContextController = CandidateContextControllerContract<
+type ContextController = CandidateContextController<
   PrimaryContextPresentation,
   ProfilePresentation[]
 >;
 
 // Load the signed-in user's candidate profiles into the query cache.
-export function useContexts(controller: CandidateContextController) {
+export function useContexts(controller: ContextController) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useReactContext(AuthContainer);
 
@@ -45,7 +45,7 @@ export function useContexts(controller: CandidateContextController) {
 }
 
 // Load one candidate profile when both the user and profile identifiers are available.
-export function useContext(id: string, controller: CandidateContextController) {
+export function useContext(id: string, controller: ContextController) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useReactContext(AuthContainer);
 
@@ -65,7 +65,7 @@ export function useContext(id: string, controller: CandidateContextController) {
 // Create or update a profile and refresh its list and detail queries.
 export function useSaveContext(
   id: string | undefined,
-  controller: CandidateContextController,
+  controller: ContextController,
 ) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useReactContext(AuthContainer);
@@ -90,7 +90,7 @@ export function useSaveContext(
 }
 
 // Delete a candidate profile and refresh the user's profile list.
-export function useDeleteContext(controller: CandidateContextController) {
+export function useDeleteContext(controller: ContextController) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useReactContext(AuthContainer);
 
@@ -111,7 +111,7 @@ export function useDeleteContext(controller: CandidateContextController) {
 }
 
 // Observe the shared context list and expose primary-context output prepared by the use case presenter.
-export function usePrimaryContext(controller: CandidateContextController) {
+export function usePrimaryContext(controller: ContextController) {
   // Scope the shared candidate context cache to the authenticated user.
   const auth = useReactContext(AuthContainer);
 
@@ -136,7 +136,7 @@ export function usePrimaryContext(controller: CandidateContextController) {
 }
 
 // Prepare profile-card output from the shared list cache and handle confirmed deletion.
-export function useProfiles(controller: CandidateContextController) {
+export function useProfiles(controller: ContextController) {
   // Observe the saved contexts shared with the dashboard and submission form.
   const contexts = useContexts(controller);
 
@@ -163,7 +163,7 @@ export function useProfiles(controller: CandidateContextController) {
 }
 
 // Connect profile validation, loaded fields, selected files, and save navigation to React.
-export function useProfileEditor(controller: CandidateContextController) {
+export function useProfileEditor(controller: ContextController) {
   // Identify the profile being edited from the route.
   const { contextId } = useParams();
 
@@ -186,8 +186,8 @@ export function useProfileEditor(controller: CandidateContextController) {
   const [fileError, setFileError] = useState<string | null>(null);
 
   // Adapt controller validation to React Hook Form field feedback.
-  const form = useForm<CandidateContextFormContract>({
-    resolver: (values): ResolverResult<CandidateContextFormContract> => {
+  const form = useForm<CandidateContextForm>({
+    resolver: (values): ResolverResult<CandidateContextForm> => {
       const result = controller.validateProfile(values);
 
       if (result.valid) return { values: result.values, errors: {} };

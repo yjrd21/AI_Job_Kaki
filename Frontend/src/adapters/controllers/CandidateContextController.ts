@@ -1,15 +1,18 @@
-import type { CandidateContextControllerContract } from "../../application/contracts/controllers/CandidateContextControllerContract";
 import type {
   CandidateContext,
   CandidateContextInput,
 } from "../../domain/models/CandidateContext";
 import { z } from "zod";
 import { listFromLines } from "../views/utils/textUtils";
-import type {
-  AnalysisProfilesOutputContract,
-  CandidateContextFormContract,
-  CandidateContextValidationContract,
-} from "../../application/contracts/controllers/CandidateContextControllerContract";
+import type { CandidateContextForm } from "../../application/contracts/presenters/CandidateContextPresenterContract";
+import type { AnalysisProfilesOutput } from "../../application/use-cases/candidateContextUseCases";
+
+export type CandidateContextValidation =
+  | { valid: true; values: CandidateContextForm }
+  | {
+      valid: false;
+      errors: Partial<Record<keyof CandidateContextForm, string>>;
+    };
 
 type CandidateContextControllerDependencies<TOutput, TProfiles> = {
   getContext(userId: string, id: string): Promise<CandidateContext>;
@@ -20,11 +23,11 @@ type CandidateContextControllerDependencies<TOutput, TProfiles> = {
   ): Promise<CandidateContext>;
   deleteContext(userId: string, id: string): Promise<void>;
   getProfiles(contexts: CandidateContext[]): TProfiles;
-  getEditorValues(context: CandidateContext): CandidateContextFormContract;
+  getEditorValues(context: CandidateContext): CandidateContextForm;
   listContexts(userId: string): Promise<CandidateContext[]>;
   loadAnalysisProfiles(
     userId: string,
-    output: AnalysisProfilesOutputContract,
+    output: AnalysisProfilesOutput,
   ): Promise<void>;
   getPrimaryContext(contexts: CandidateContext[]): TOutput;
 };
@@ -42,10 +45,7 @@ const schema = z.object({
 });
 
 // Delegate candidate context operations to the injected use cases and presenters.
-export class CandidateContextController<
-  TOutput,
-  TProfiles,
-> implements CandidateContextControllerContract<TOutput, TProfiles> {
+export class CandidateContextController<TOutput, TProfiles> {
   constructor(
     private readonly dependencies: CandidateContextControllerDependencies<
       TOutput,
@@ -54,7 +54,7 @@ export class CandidateContextController<
   ) {}
 
   // Translate profile validation into plain field feedback.
-  validateProfile(input: unknown): CandidateContextValidationContract {
+  validateProfile(input: unknown): CandidateContextValidation {
     const result = schema.safeParse(input);
 
     if (result.success) return { valid: true, values: result.data };
@@ -73,7 +73,7 @@ export class CandidateContextController<
 
   // Translate validated multiline input and an optional encoded CV into application fields.
   prepareProfile(
-    input: CandidateContextFormContract,
+    input: CandidateContextForm,
     cv?: { name: string; content: string },
   ): CandidateContextInput {
     const values = schema.parse(input);
@@ -107,7 +107,7 @@ export class CandidateContextController<
   }
 
   // Prepare editable profile values.
-  getEditorValues(context: CandidateContext) {
+  getEditorValues(context: CandidateContext): CandidateContextForm {
     return this.dependencies.getEditorValues(context);
   }
 
@@ -117,7 +117,7 @@ export class CandidateContextController<
   }
 
   // Request selector data without managing React state or formatting the result.
-  loadAnalysisProfiles(userId: string, output: AnalysisProfilesOutputContract) {
+  loadAnalysisProfiles(userId: string, output: AnalysisProfilesOutput) {
     return this.dependencies.loadAnalysisProfiles(userId, output);
   }
 

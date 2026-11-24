@@ -4,8 +4,8 @@ import { usePrimaryContext } from "../../hooks/useContexts";
 import { useJobs } from "../../hooks/useJobs";
 import { Loading, ErrorNotice } from "../components/composed/Feedback";
 import { RecentAnalysisCard } from "../components/composed/RecentAnalysisCard";
-import type { JobControllerContract } from "../../../application/contracts/controllers/JobControllerContract";
-import type { CandidateContextControllerContract } from "../../../application/contracts/controllers/CandidateContextControllerContract";
+import type { JobController } from "../../controllers/JobController";
+import type { CandidateContextController } from "../../controllers/CandidateContextController";
 import type {
   JobAnalysisPresentation,
   JobPresentation,
@@ -20,11 +20,8 @@ export function DashboardPage({
   jobController,
   candidateContextController,
 }: {
-  jobController: JobControllerContract<
-    JobPresentation,
-    JobAnalysisPresentation
-  >;
-  candidateContextController: CandidateContextControllerContract<
+  jobController: JobController<JobPresentation, JobAnalysisPresentation>;
+  candidateContextController: CandidateContextController<
     PrimaryContextPresentation,
     ProfilePresentation[]
   >;

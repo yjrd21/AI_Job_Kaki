@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, FileText, Info, Save } from "lucide-react";
 import { Button } from "../components/primitives/Button";
 import { ErrorNotice, Loading } from "../components/composed/Feedback";
-import type { CandidateContextControllerContract } from "../../../application/contracts/controllers/CandidateContextControllerContract";
+import type { CandidateContextController } from "../../controllers/CandidateContextController";
 import type {
   PrimaryContextPresentation,
   ProfilePresentation,
@@ -13,7 +13,7 @@ import type {
 export function ProfileEditorPage({
   candidateContextController,
 }: {
-  candidateContextController: CandidateContextControllerContract<
+  candidateContextController: CandidateContextController<
     PrimaryContextPresentation,
     ProfilePresentation[]
   >;

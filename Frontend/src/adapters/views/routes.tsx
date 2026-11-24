@@ -14,9 +14,9 @@ import { ProfilesPage } from "./pages/ProfilesPage";
 import { ProfileEditorPage } from "./pages/ProfileEditorPage";
 import { AccountPage } from "./pages/AccountPage";
 import type { AccountController } from "../controllers/AccountController";
-import type { JobControllerContract } from "../../application/contracts/controllers/JobControllerContract";
-import type { CandidateContextControllerContract } from "../../application/contracts/controllers/CandidateContextControllerContract";
-import type { OnboardingControllerContract } from "../../application/contracts/controllers/OnboardingControllerContract";
+import type { JobController } from "../controllers/JobController";
+import type { CandidateContextController } from "../controllers/CandidateContextController";
+import type { OnboardingController } from "../controllers/OnboardingController";
 import type {
   JobAnalysisPresentation,
   JobPresentation,
@@ -28,15 +28,12 @@ import type {
 
 type RouteControllers = {
   accountController: AccountController;
-  jobController: JobControllerContract<
-    JobPresentation,
-    JobAnalysisPresentation
-  >;
-  candidateContextController: CandidateContextControllerContract<
+  jobController: JobController<JobPresentation, JobAnalysisPresentation>;
+  candidateContextController: CandidateContextController<
     PrimaryContextPresentation,
     ProfilePresentation[]
   >;
-  onboardingController: OnboardingControllerContract;
+  onboardingController: OnboardingController;
 };
 
 // Wait for session restoration and restrict protected routes to identified users.

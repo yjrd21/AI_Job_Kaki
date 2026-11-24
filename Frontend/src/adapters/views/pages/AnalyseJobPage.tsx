@@ -9,8 +9,8 @@ import { Link } from "react-router-dom";
 import { ArrowRight, FileText, Link2, Info, Sparkles } from "lucide-react";
 import { Button } from "../components/primitives/Button";
 import { Loading, ErrorNotice } from "../components/composed/Feedback";
-import type { CandidateContextControllerContract } from "../../../application/contracts/controllers/CandidateContextControllerContract";
-import type { JobControllerContract } from "../../../application/contracts/controllers/JobControllerContract";
+import type { CandidateContextController } from "../../controllers/CandidateContextController";
+import type { JobController } from "../../controllers/JobController";
 import type {
   JobAnalysisPresentation,
   JobPresentation,
@@ -25,11 +25,8 @@ export function AnalyseJobPage({
   jobController,
   candidateContextController,
 }: {
-  jobController: JobControllerContract<
-    JobPresentation,
-    JobAnalysisPresentation
-  >;
-  candidateContextController: CandidateContextControllerContract<
+  jobController: JobController<JobPresentation, JobAnalysisPresentation>;
+  candidateContextController: CandidateContextController<
     PrimaryContextPresentation,
     ProfilePresentation[]
   >;

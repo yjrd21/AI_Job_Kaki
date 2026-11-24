@@ -1,15 +1,15 @@
 import { useNavigate } from "react-router-dom";
 import { fileToBase64, MAX_CV_BYTES } from "../views/utils/fileUtils";
 import { useAccount } from "./useAccount";
-import type {
-  OnboardingInputContract,
-  OnboardingProgressContract,
-} from "../../application/contracts/controllers/OnboardingControllerContract";
 import { useContext, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AuthContainer } from "../containers/AuthContainer";
 import type { AccountController } from "../controllers/AccountController";
-import type { OnboardingControllerContract } from "../../application/contracts/controllers/OnboardingControllerContract";
+import type {
+  OnboardingController,
+  OnboardingInput,
+} from "../controllers/OnboardingController";
+import type { OnboardingProgress } from "../../application/use-cases/onboardingUseCases";
 
 // Reuse the account query so onboarding checks and account editing share one cache entry.
 export { useAccount as useOnboardingStatus } from "./useAccount";
@@ -38,7 +38,7 @@ export function useCompleteOnboarding(controller: AccountController) {
 
 // Connect onboarding steps, file reading, and workflow execution to React.
 export function useOnboardingForm(
-  controller: OnboardingControllerContract,
+  controller: OnboardingController,
   accountController: AccountController,
 ) {
   const auth = useContext(AuthContainer);
@@ -52,13 +52,13 @@ export function useOnboardingForm(
   const navigate = useNavigate();
 
   // Keep the workflow checkpoint for retries during this mounted onboarding attempt.
-  const progress = useRef<OnboardingProgressContract>({ contextId: null });
+  const progress = useRef<OnboardingProgress>({ contextId: null });
 
   const [step, setStep] = useState(0);
 
   const [finished, setFinished] = useState(false);
 
-  const [values, setValues] = useState<Omit<OnboardingInputContract, "cv">>({
+  const [values, setValues] = useState<Omit<OnboardingInput, "cv">>({
     roles: "",
     preferences: "",
     redFlags: "",

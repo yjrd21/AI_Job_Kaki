@@ -6,7 +6,7 @@ import { Alert } from "../components/primitives/Alert";
 import { StepProgress } from "../components/primitives/StepProgress";
 import { ErrorNotice, Loading } from "../components/composed/Feedback";
 import type { AccountController } from "../../controllers/AccountController";
-import type { OnboardingControllerContract } from "../../../application/contracts/controllers/OnboardingControllerContract";
+import type { OnboardingController } from "../../controllers/OnboardingController";
 
 // Define the ordered steps shown by the onboarding progress indicator.
 const steps = ["Target roles", "CV", "Work preferences", "Priorities"] as const;
@@ -16,7 +16,7 @@ export function OnboardingPage({
   onboardingController,
   accountController,
 }: {
-  onboardingController: OnboardingControllerContract;
+  onboardingController: OnboardingController;
   accountController: AccountController;
 }) {
   // Bind step state and workflow handlers supplied by the onboarding hook.

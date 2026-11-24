@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import type { JobControllerContract } from "../../../src/application/contracts/controllers/JobControllerContract";
 import { job, makeControllers } from "../../fixtures/application";
 
 const input = {
@@ -11,9 +10,8 @@ const input = {
 describe("JobController", () => {
   it("returns plain field feedback without invoking the application API", () => {
     const { jobController, repositories } = makeControllers();
-    const controller: JobControllerContract = jobController;
     expect(
-      controller.validateJob({
+      jobController.validateJob({
         submissionType: "OTHER",
         candidateContextId: "",
         jobContext: "  ab  ",

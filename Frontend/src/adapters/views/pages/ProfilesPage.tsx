@@ -6,7 +6,7 @@ import {
   ErrorNotice,
   EmptyState,
 } from "../components/composed/Feedback";
-import type { CandidateContextControllerContract } from "../../../application/contracts/controllers/CandidateContextControllerContract";
+import type { CandidateContextController } from "../../controllers/CandidateContextController";
 import type {
   PrimaryContextPresentation,
   ProfilePresentation,
@@ -16,7 +16,7 @@ import type {
 export function ProfilesPage({
   candidateContextController,
 }: {
-  candidateContextController: CandidateContextControllerContract<
+  candidateContextController: CandidateContextController<
     PrimaryContextPresentation,
     ProfilePresentation[]
   >;

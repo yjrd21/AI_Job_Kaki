@@ -3,19 +3,13 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useForm, type ResolverResult } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AuthContainer } from "../containers/AuthContainer";
-import type {
-  JobControllerContract,
-  JobInputContract,
-} from "../../application/contracts/controllers/JobControllerContract";
+import type { JobController, JobInput } from "../controllers/JobController";
 import type {
   JobAnalysisPresentation,
   JobPresentation,
 } from "../presenters/JobPresenter";
 
-type JobController = JobControllerContract<
-  JobPresentation,
-  JobAnalysisPresentation
->;
+type JobsController = JobController<JobPresentation, JobAnalysisPresentation>;
 
 // Keep job list, submission, and analysis query keys consistent across hooks.
 export const jobKeys = {
@@ -25,7 +19,7 @@ export const jobKeys = {
 };
 
 // Load the signed-in user's submissions into the query cache.
-export function useJobs(controller: JobController) {
+export function useJobs(controller: JobsController) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useContext(AuthContainer);
 
@@ -43,7 +37,7 @@ export function useJobs(controller: JobController) {
 }
 
 // Poll an active submission every 2.5 seconds until processing completes or fails.
-export function useJob(id: string, controller: JobController) {
+export function useJob(id: string, controller: JobsController) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useContext(AuthContainer);
 
@@ -67,7 +61,7 @@ export function useJob(id: string, controller: JobController) {
 // Fetch a saved analysis only when an analysis identifier is available.
 export function useAnalysis(
   id: string | null | undefined,
-  controller: JobController,
+  controller: JobsController,
 ) {
   return useQuery({
     queryKey: jobKeys.analysis(id || ""),
@@ -77,7 +71,7 @@ export function useAnalysis(
 }
 
 // Submit a job and invalidate the current user's cached submission list.
-export function useSubmitJob(controller: JobController) {
+export function useSubmitJob(controller: JobsController) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useContext(AuthContainer);
 
@@ -91,15 +85,14 @@ export function useSubmitJob(controller: JobController) {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: JobInputContract) =>
-      controller.submitJob(userId!, input),
+    mutationFn: (input: JobInput) => controller.submitJob(userId!, input),
     onSuccess: () =>
       void qc.invalidateQueries({ queryKey: jobKeys.all(userId!) }),
   });
 }
 
 // Delete a submission and invalidate the current user's cached submission list.
-export function useDeleteJob(controller: JobController) {
+export function useDeleteJob(controller: JobsController) {
   // Read the signed-in user identifier for user-scoped operations.
   const auth = useContext(AuthContainer);
 
@@ -120,7 +113,7 @@ export function useDeleteJob(controller: JobController) {
 }
 
 // Connect job form state, controller validation, URL defaults, and submission to React.
-export function useAnalyseJobForm(controller: JobController) {
+export function useAnalyseJobForm(controller: JobsController) {
   // Prepare the submission mutation and its loading and error state.
   const submit = useSubmitJob(controller);
 
@@ -131,8 +124,8 @@ export function useAnalyseJobForm(controller: JobController) {
   const [params] = useSearchParams();
 
   // Translate controller validation feedback into React Hook Form field errors.
-  const form = useForm<JobInputContract>({
-    resolver: (values): ResolverResult<JobInputContract> => {
+  const form = useForm<JobInput>({
+    resolver: (values): ResolverResult<JobInput> => {
       // Validate submission input without importing the concrete controller or Zod.
       const validation = controller.validateJob(values);
 
@@ -177,7 +170,7 @@ export function useAnalyseJobForm(controller: JobController) {
   });
 
   // Update the submission mode without clearing the entered job information.
-  const onSubmissionTypeChange = (type: JobInputContract["submissionType"]) => {
+  const onSubmissionTypeChange = (type: JobInput["submissionType"]) => {
     form.setValue("submissionType", type);
   };
 
@@ -185,7 +178,7 @@ export function useAnalyseJobForm(controller: JobController) {
 }
 
 // Connect history search, cached submissions, and confirmed deletion to React.
-export function useJobHistory(controller: JobController) {
+export function useJobHistory(controller: JobsController) {
   // Observe the existing user-scoped list and deletion mutation.
   const jobs = useJobs(controller);
 
@@ -216,7 +209,7 @@ export function useJobHistory(controller: JobController) {
 }
 
 // Coordinate submission polling, completed-report retrieval, and result actions.
-export function useJobResult(controller: JobController) {
+export function useJobResult(controller: JobsController) {
   // Read the submission identifier and the navigation action from React Router.
   const { jobId = "" } = useParams();
 

@@ -1,5 +1,5 @@
 import { linesFromList } from "../views/utils/textUtils";
-import type { CandidateContextFormContract } from "../../application/contracts/controllers/CandidateContextControllerContract";
+import type { CandidateContextForm } from "../../application/contracts/presenters/CandidateContextPresenterContract";
 import type { CandidateContext } from "../../domain/models/CandidateContext";
 import type { CandidateContextPresenterContract } from "../../application/contracts/presenters/CandidateContextPresenterContract";
 import { formatDate } from "../views/utils/dateUtils";
@@ -55,7 +55,7 @@ export class CandidateContextPresenter implements CandidateContextPresenterContr
   }
 
   // Prepare multiline editor fields from a saved candidate context.
-  presentEditor(context: CandidateContext): CandidateContextFormContract {
+  presentEditor(context: CandidateContext): CandidateContextForm {
     return {
       roles: linesFromList(context.targetRoles),
       preferences: linesFromList(context.preferences),
