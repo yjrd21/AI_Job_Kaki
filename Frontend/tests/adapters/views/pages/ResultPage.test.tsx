@@ -1,14 +1,21 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
-import { JobResultPage } from "../../../../src/adapters/views/pages/JobResultPage";
-import { AuthSessionProvider } from "../../../../src/infrastructure/providers/AuthSessionProvider";
+import { ResultPage } from "../../../../src/adapters/views/pages/ResultPage";
+import { AuthContext } from "../../../../src/adapters/AuthContext";
 import {
   analysis,
   job,
+  makeAuthContextValue,
   makeControllers,
-  makeSession,
+  signedIn,
 } from "../../../fixtures/application";
 import type {
   JobAnalysis,
@@ -21,7 +28,7 @@ function showResult(
   reportError?: Error,
   report: Partial<JobAnalysis> = {},
 ) {
-  const { jobController, jobPresenter, repositories } = makeControllers();
+  const { resultController, jobPresenter, repositories } = makeControllers();
   repositories.jobs.get.mockResolvedValue({ ...job, ...update });
   repositories.analyses.get.mockResolvedValue({ ...analysis, ...report });
   if (requestError) repositories.jobs.get.mockRejectedValue(requestError);
@@ -31,10 +38,9 @@ function showResult(
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
-  const session = makeSession();
   render(
     <QueryClientProvider client={queryClient}>
-      <AuthSessionProvider session={session}>
+      <AuthContext.Provider value={makeAuthContextValue(signedIn)}>
         <MemoryRouter
           initialEntries={["/jobs/job-id"]}
           future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
@@ -43,11 +49,11 @@ function showResult(
             <Route path="/history" element={<p>Submission history</p>} />
             <Route
               path="/jobs/:jobId"
-              element={<JobResultPage jobController={jobController} />}
+              element={<ResultPage resultController={resultController} />}
             />
           </Routes>
         </MemoryRouter>
-      </AuthSessionProvider>
+      </AuthContext.Provider>
     </QueryClientProvider>,
   );
   return { failed, requestFailed, repositories };
@@ -148,6 +154,87 @@ describe("job result through the use-case presenter boundary", () => {
       expect(repositories.analyses.get).not.toHaveBeenCalled();
     },
   );
+
+  it("polls while processing and stops after completion", async () => {
+    vi.useFakeTimers();
+    try {
+      const { repositories } = showResult({ status: "PENDING" });
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+        await vi.advanceTimersByTimeAsync(10);
+      });
+
+      expect(
+        screen.getByText("Your analysis is in the queue."),
+      ).toBeInTheDocument();
+      repositories.jobs.get
+        .mockResolvedValueOnce({ ...job, status: "PROCESSING" })
+        .mockResolvedValueOnce({
+          ...job,
+          status: "COMPLETED",
+          jobAnalysisId: "analysis-id",
+        });
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2500);
+      });
+      expect(
+        screen.getByText("We're reviewing the opportunity."),
+      ).toBeInTheDocument();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2500);
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10);
+      });
+      expect(repositories.analyses.get).toHaveBeenCalledExactlyOnceWith(
+        "analysis-id",
+      );
+      expect(repositories.jobs.get).toHaveBeenCalledTimes(3);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(7500);
+      });
+      expect(repositories.jobs.get).toHaveBeenCalledTimes(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("continues polling after a transient status retrieval error", async () => {
+    vi.useFakeTimers();
+    try {
+      const { repositories } = showResult({ status: "PENDING" });
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+        await vi.advanceTimersByTimeAsync(10);
+      });
+
+      repositories.jobs.get.mockRejectedValueOnce(
+        new Error("Temporary status failure"),
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2500);
+      });
+      expect(screen.getByText("Temporary status failure")).toBeInTheDocument();
+
+      repositories.jobs.get.mockResolvedValueOnce({
+        ...job,
+        status: "COMPLETED",
+        jobAnalysisId: "analysis-id",
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2500);
+      });
+      expect(screen.getByText(analysis.matchSummary)).toBeInTheDocument();
+      expect(repositories.jobs.get).toHaveBeenCalledTimes(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 
   it("retrieves completed reports and renders the presenter's report text", async () => {
     const { repositories } = showResult({

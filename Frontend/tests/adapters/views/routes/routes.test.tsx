@@ -28,8 +28,11 @@ async function showRoute(
     accountController,
     dashboardController,
     loginController,
-    jobController,
-    candidateContextController,
+    analysisController,
+    historyController,
+    resultController,
+    profileController,
+    profileEditorController,
     onboardingController,
     repositories,
   } = makeControllers(session);
@@ -44,8 +47,11 @@ async function showRoute(
     accountController,
     dashboardController,
     loginController,
-    jobController,
-    candidateContextController,
+    analysisController,
+    historyController,
+    resultController,
+    profileController,
+    profileEditorController,
     onboardingController,
   });
   await act(async () => {

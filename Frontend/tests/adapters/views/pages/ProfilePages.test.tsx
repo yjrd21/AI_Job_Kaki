@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { ProfileEditorPage } from "../../../../src/adapters/views/pages/ProfileEditorPage";
-import { ProfilesPage } from "../../../../src/adapters/views/pages/ProfilesPage";
+import { ProfilePage } from "../../../../src/adapters/views/pages/ProfilePage";
 import { OnboardingPage } from "../../../../src/adapters/views/pages/OnboardingPage";
 import { LoginPage } from "../../../../src/adapters/views/pages/LoginPage";
 import { AuthContext } from "../../../../src/adapters/AuthContext";
@@ -98,11 +98,9 @@ async function advanceToFinalStep() {
 
 describe("profile editor through controller and presenter", () => {
   it("validates input, prepares lists, and creates a profile before navigating", async () => {
-    const { show, repositories, candidateContextController } = setup();
+    const { show, repositories, profileEditorController } = setup();
     show(
-      <ProfileEditorPage
-        candidateContextController={candidateContextController}
-      />,
+      <ProfileEditorPage profileEditorController={profileEditorController} />,
       "/profiles/new",
     );
     submitProfile();
@@ -127,15 +125,13 @@ describe("profile editor through controller and presenter", () => {
   });
 
   it("populates existing values and updates without replacing the saved CV", async () => {
-    const { show, repositories, candidateContextController } = setup();
+    const { show, repositories, profileEditorController } = setup();
     repositories.contexts.get.mockResolvedValue({
       ...profile,
       targetRoles: ["Engineer", "Designer"],
     });
     show(
-      <ProfileEditorPage
-        candidateContextController={candidateContextController}
-      />,
+      <ProfileEditorPage profileEditorController={profileEditorController} />,
       "/profiles/profile-id",
     );
     await waitFor(() =>
@@ -157,11 +153,9 @@ describe("profile editor through controller and presenter", () => {
   });
 
   it("reports oversized files before saving and keeps save failures separate", async () => {
-    const { show, repositories, candidateContextController } = setup();
+    const { show, repositories, profileEditorController } = setup();
     show(
-      <ProfileEditorPage
-        candidateContextController={candidateContextController}
-      />,
+      <ProfileEditorPage profileEditorController={profileEditorController} />,
       "/profiles/new",
     );
     fireEvent.change(screen.getByLabelText(/Career directions/), {
@@ -600,12 +594,44 @@ describe("onboarding workflow from the page", () => {
 });
 
 describe("profile listing and sign-in actions", () => {
-  it("renders prepared card output and handles cancelled and failed deletions", async () => {
-    const { show, repositories, candidateContextController } = setup();
-    show(
-      <ProfilesPage candidateContextController={candidateContextController} />,
+  it("reloads profile cards after returning from an edit", async () => {
+    const { show, repositories, profileController, profileEditorController } =
+      setup();
+    const initialList = show(
+      <ProfilePage profileController={profileController} />,
       "/profiles",
     );
+    await screen.findByRole("heading", { name: "Engineer" });
+    const editor = show(
+      <ProfileEditorPage profileEditorController={profileEditorController} />,
+      "/profiles/profile-id",
+    );
+    await screen.findByLabelText(/Career directions/);
+    repositories.contexts.list.mockResolvedValue([
+      { ...profile, targetRoles: ["Designer"] },
+    ]);
+    fireEvent.change(screen.getByLabelText(/Career directions/), {
+      target: { value: "Designer" },
+    });
+    repositories.contexts.list.mockResolvedValue([
+      { ...profile, targetRoles: ["Designer"] },
+    ]);
+    submitProfile();
+    await screen.findByText("Saved profiles");
+    initialList.unmount();
+    editor.unmount();
+    const updatedList = show(
+      <ProfilePage profileController={profileController} />,
+      "/profiles",
+    );
+    await screen.findByRole("heading", { name: "Designer" });
+    expect(repositories.contexts.list).toHaveBeenCalledTimes(2);
+    updatedList.unmount();
+  });
+
+  it("renders prepared card output and handles cancelled and failed deletions", async () => {
+    const { show, repositories, profileController } = setup();
+    show(<ProfilePage profileController={profileController} />, "/profiles");
     await screen.findByRole("heading", { name: "Engineer" });
     expect(screen.getByText("PROFILE 01")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "View and edit" })).toHaveAttribute(

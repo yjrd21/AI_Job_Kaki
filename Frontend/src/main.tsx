@@ -7,8 +7,11 @@ import {
   onboardingController,
   accountController,
   loginController,
-  jobController,
-  candidateContextController,
+  analysisController,
+  historyController,
+  resultController,
+  profileController,
+  profileEditorController,
 } from "./app/dependencies";
 import { createAppRouter } from "./adapters/views/routes";
 import { AuthSessionProvider } from "./infrastructure/providers/AuthSessionProvider";
@@ -21,8 +24,11 @@ const router = createAppRouter({
   accountController,
   dashboardController,
   loginController,
-  jobController,
-  candidateContextController,
+  analysisController,
+  historyController,
+  resultController,
+  profileController,
+  profileEditorController,
   onboardingController,
 });
 

@@ -1,8 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
-import { JobHistoryPage } from "../../../../src/adapters/views/pages/JobHistoryPage";
+import { HistoryPage } from "../../../../src/adapters/views/pages/HistoryPage";
 import { AuthContext } from "../../../../src/adapters/AuthContext";
 import {
   job,
@@ -12,26 +11,21 @@ import {
 } from "../../../fixtures/application";
 
 function showHistory() {
-  const { jobController, repositories } = makeControllers();
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
+  const { historyController, repositories } = makeControllers();
   render(
-    <QueryClientProvider client={client}>
-      <AuthContext.Provider value={makeAuthContextValue(signedIn)}>
-        <MemoryRouter
-          future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-        >
-          <JobHistoryPage jobController={jobController} />
-        </MemoryRouter>
-      </AuthContext.Provider>
-    </QueryClientProvider>,
+    <AuthContext.Provider value={makeAuthContextValue(signedIn)}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
+        <HistoryPage historyController={historyController} />
+      </MemoryRouter>
+    </AuthContext.Provider>,
   );
   return repositories;
 }
 
-describe("job history interactions through the job hook", () => {
-  it("filters cached jobs by posting, status, and identifier without another request", async () => {
+describe("job history interactions through the page controller", () => {
+  it("filters loaded jobs by posting, status, and identifier without another request", async () => {
     const repositories = showHistory();
     await screen.findByRole("heading", { name: job.jobContext });
     for (const value of ["DESCRIPTION", "pending", "JOB-ID"]) {
@@ -69,7 +63,7 @@ describe("job history interactions through the job hook", () => {
     }
   });
 
-  it("displays deletion failures and refreshes history after a successful retry", async () => {
+  it("displays deletion failures and reloads history after a successful retry", async () => {
     const repositories = showHistory();
     await screen.findByRole("heading", { name: job.jobContext });
     const confirmation = vi.spyOn(window, "confirm").mockReturnValue(true);

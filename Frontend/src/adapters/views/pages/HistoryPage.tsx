@@ -1,27 +1,46 @@
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Search, Trash2 } from "lucide-react";
-import { useJobHistory } from "../../hooks/useJobs";
+import { useAuthContext } from "../../AuthContext";
 import { StatusBadge } from "../components/composed/JobStatusBadge";
 import {
   EmptyState,
   ErrorNotice,
   Loading,
 } from "../components/composed/Feedback";
-import type { JobController } from "../../controllers/JobController";
-import type {
-  JobAnalysisPresentation,
-  JobPresentation,
-} from "../../presenters/JobPresenter";
+import type { HistoryController } from "../../controllers/HistoryController";
+import { HistoryPresenter } from "../../presenters/HistoryPresenter";
 
 // Display searchable job history with links and deletion actions.
-export function JobHistoryPage({
-  jobController,
+export function HistoryPage({
+  historyController,
 }: {
-  jobController: JobController<JobPresentation, JobAnalysisPresentation>;
+  historyController: HistoryController;
 }) {
-  // Bind history search and deletion events supplied by the job hook.
-  const { jobs, del, search, onSearchChange, filtered, onDelete } =
-    useJobHistory(jobController);
+  const userId = useAuthContext().session.userId;
+  const [presenter] = useState(() => new HistoryPresenter());
+  const view = useSyncExternalStore(presenter.subscribe, presenter.getSnapshot);
+  const loadJobs = useCallback(
+    () => void historyController.loadJobs(userId, presenter),
+    [historyController, presenter, userId],
+  );
+
+  // The protected route remounts when the authenticated user changes.
+  useEffect(() => {
+    loadJobs();
+    return () => presenter.cancelRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Load once per page mount.
+  }, []);
+
+  const onDelete = (id: string) => {
+    if (
+      window.confirm(
+        "Delete this job submission? The analysis may remain stored by the AI service.",
+      )
+    ) {
+      void historyController.deleteJob(userId, id, presenter);
+    }
+  };
 
   return (
     <div>
@@ -45,26 +64,28 @@ export function JobHistoryPage({
           <Search size={18} className="absolute left-4 top-3.5 muted" />
           <input
             id="search"
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
+            value={view.search}
+            onChange={(e) => presenter.presentSearch(e.target.value)}
             className="field pl-11"
             placeholder="Search by posting, status or ID"
           />
         </div>
-        {jobs.isLoading ? (
+        {view.jobs.status === "loading" ? (
           <Loading />
-        ) : jobs.isError ? (
-          <ErrorNotice error={jobs.error} retry={() => void jobs.refetch()} />
-        ) : filtered.length === 0 ? (
+        ) : view.jobs.status === "error" ? (
+          <ErrorNotice error={view.jobs.error} retry={loadJobs} />
+        ) : view.filteredJobs.length === 0 ? (
           <EmptyState
-            title={search ? "No matching analyses" : "Your history starts here"}
+            title={
+              view.search ? "No matching analyses" : "Your history starts here"
+            }
             detail={
-              search
+              view.search
                 ? "Try a different search."
                 : "Analyse your first job to see it here."
             }
             action={
-              !search ? (
+              !view.search ? (
                 <Link to="/analyse" className="btn btn-primary">
                   Analyse a job
                 </Link>
@@ -73,7 +94,7 @@ export function JobHistoryPage({
           />
         ) : (
           <div>
-            {filtered.map((job) => (
+            {view.filteredJobs.map((job) => (
               <div
                 key={job.id}
                 className="entry-row flex flex-col sm:flex-row sm:items-center justify-between gap-4"
@@ -94,7 +115,7 @@ export function JobHistoryPage({
                     title="Delete submission"
                     aria-label="Delete submission"
                     className="text-[#9a6458] p-2 hover:bg-red-50 rounded"
-                    disabled={del.isPending}
+                    disabled={view.deleting}
                     onClick={() => onDelete(job.id)}
                   >
                     <Trash2 size={17} />
@@ -111,9 +132,9 @@ export function JobHistoryPage({
           </div>
         )}
       </div>
-      {del.isError && (
+      {view.deleteError !== null && (
         <div className="mt-4">
-          <ErrorNotice error={del.error} />
+          <ErrorNotice error={view.deleteError} />
         </div>
       )}
     </div>

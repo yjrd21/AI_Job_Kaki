@@ -1,8 +1,10 @@
-import { ShieldCheck, Info, Save } from "lucide-react";
-import { useAccountForm } from "../../hooks/useAccount";
-import { Button } from "../components/primitives/Button";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { Info, Save, ShieldCheck } from "lucide-react";
+import { useAuthContext } from "../../AuthContext";
 import { ErrorNotice, Loading } from "../components/composed/Feedback";
 import type { AccountController } from "../../controllers/AccountController";
+import { AccountPresenter } from "../../presenters/AccountPresenter";
+import { AccountForm } from "../components/composed/AccountForm";
 
 // Display editable account details and the result of saving changes.
 export function AccountPage({
@@ -10,8 +12,23 @@ export function AccountPage({
 }: {
   accountController: AccountController;
 }) {
-  // Bind the account form state and event handler supplied by its React hook.
-  const { query, form, save, onSubmit } = useAccountForm(accountController);
+  const userId = useAuthContext().session.userId;
+  const [presenter] = useState(() => new AccountPresenter());
+  const view = useSyncExternalStore(presenter.subscribe, presenter.getSnapshot);
+  const formValues = useMemo(
+    () =>
+      view.account.status === "ready"
+        ? accountController.toFormValues(view.account.data)
+        : null,
+    [accountController, view.account],
+  );
+
+  // The protected route remounts when the authenticated user changes.
+  useEffect(() => {
+    void accountController.loadAccount(userId, presenter);
+    return () => presenter.cancelRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Load once per page mount.
+  }, []);
 
   return (
     <div className="max-w-3xl">
@@ -20,87 +37,55 @@ export function AccountPage({
       <p className="muted mb-10">
         Keep your basic account information up to date.
       </p>
-      {query.isLoading ? (
+      {view.account.status === "loading" ? (
         <Loading />
-      ) : query.isError ? (
-        <ErrorNotice error={query.error} retry={() => void query.refetch()} />
+      ) : view.account.status === "error" ? (
+        <ErrorNotice
+          error={view.account.error}
+          retry={() => void accountController.loadAccount(userId, presenter)}
+        />
       ) : (
         <>
-          <form onSubmit={onSubmit} className="card p-6 sm:p-8 mb-6">
-            <h2 className="section-title mb-6">Personal details</h2>
-            <div className="grid sm:grid-cols-2 gap-5 mb-5">
-              <div>
-                <label htmlFor="firstName" className="field-label">
-                  First name
-                </label>
-                <input
-                  id="firstName"
-                  className="field"
-                  {...form.register("firstName")}
-                />
-                {form.formState.errors.firstName && (
-                  <p className="text-xs text-red-700 mt-1">
-                    {form.formState.errors.firstName.message}
+          {view.account.status === "ready" && formValues && (
+            <AccountForm
+              values={formValues}
+              resolver={(values) =>
+                accountController.resolveAccountForm(values, presenter)
+              }
+              onSubmit={(values) =>
+                accountController.submitAccount(userId, values, presenter)
+              }
+              formClassName="card p-6 sm:p-8 mb-6"
+              title="Personal details"
+              description={
+                <p className="text-xs muted flex items-start gap-2 mt-4 leading-5">
+                  <Info size={16} className="shrink-0" />
+                  Keycloak and PostgreSQL store identity information separately.
+                  The gateway may resynchronize names and email from Keycloak;
+                  coordinate permanent identity changes there as well.
+                </p>
+              }
+              getFormErrorMessage={(errors) => errors.root?.controller?.message}
+              submissionError={
+                view.save.status === "error" ? (
+                  <div className="mt-5">
+                    <ErrorNotice error={view.save.error} />
+                  </div>
+                ) : null
+              }
+              successMessage={
+                view.save.status === "saved" ? (
+                  <p role="status" className="mt-4 text-sm text-green-700">
+                    Account saved.
                   </p>
-                )}
-              </div>
-              <div>
-                <label htmlFor="lastName" className="field-label">
-                  Last name
-                </label>
-                <input
-                  id="lastName"
-                  className="field"
-                  {...form.register("lastName")}
-                />
-                {form.formState.errors.lastName && (
-                  <p className="text-xs text-red-700 mt-1">
-                    {form.formState.errors.lastName.message}
-                  </p>
-                )}
-              </div>
-            </div>
-            <label htmlFor="email" className="field-label">
-              Email address
-            </label>
-            <input
-              id="email"
-              type="email"
-              className="field"
-              {...form.register("email")}
+                ) : null
+              }
+              isSubmitting={view.save.status === "saving"}
+              submitIcon={<Save size={16} />}
+              submitLabel="Save changes"
+              submittingLabel="Saving…"
             />
-            {form.formState.errors.email && (
-              <p className="text-xs text-red-700 mt-1">
-                {form.formState.errors.email.message}
-              </p>
-            )}
-            <p className="text-xs muted flex items-start gap-2 mt-4 leading-5">
-              <Info size={16} className="shrink-0" />
-              Keycloak and PostgreSQL store identity information separately. The
-              gateway may resynchronize names and email from Keycloak;
-              coordinate permanent identity changes there as well.
-            </p>
-            {form.formState.errors.root?.controller?.message && (
-              <p role="alert" className="mt-4 text-sm text-red-700">
-                {form.formState.errors.root.controller.message}
-              </p>
-            )}
-            {save.isError && (
-              <div className="mt-5">
-                <ErrorNotice error={save.error} />
-              </div>
-            )}
-            {save.isSuccess && (
-              <p role="status" className="mt-4 text-sm text-green-700">
-                Account saved.
-              </p>
-            )}
-            <div className="flex justify-end mt-6">
-              <Button disabled={save.isPending} type="submit">
-                <Save size={16} /> {save.isPending ? "Saving…" : "Save changes"}
-              </Button>
-            </div>
-          </form>
+          )}
           <section className="card p-6 sm:p-8">
             <div className="flex items-center gap-3 mb-4">
               <ShieldCheck size={23} className="text-forest" />
@@ -111,7 +96,10 @@ export function AccountPage({
               not modify your Keycloak password or security settings.
             </p>
             <p className="text-xs muted">
-              Account ID: {query.data?.id || "Not available"}
+              Account ID:
+              {view.account.status === "ready"
+                ? view.account.data.id
+                : " Not available"}
             </p>
           </section>
         </>

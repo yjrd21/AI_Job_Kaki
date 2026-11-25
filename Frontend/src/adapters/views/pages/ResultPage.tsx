@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -8,28 +9,61 @@ import {
   RefreshCw,
   Sparkles,
 } from "lucide-react";
-import { useJobResult } from "../../hooks/useJobs";
+import { useAuthContext } from "../../AuthContext";
 import { Loading, ErrorNotice } from "../components/composed/Feedback";
 import { StatusBadge } from "../components/composed/JobStatusBadge";
 import { Button } from "../components/primitives/Button";
-import type { JobController } from "../../controllers/JobController";
-import type {
-  JobAnalysisPresentation,
-  JobPresentation,
-} from "../../presenters/JobPresenter";
+import type { ResultController } from "../../controllers/ResultController";
+import { ResultPresenter } from "../../presenters/ResultPresenter";
 
 // Display submission progress, recovery guidance, or the completed analysis report.
-export function JobResultPage({
-  jobController,
+export function ResultPage({
+  resultController,
 }: {
-  jobController: JobController<JobPresentation, JobAnalysisPresentation>;
+  resultController: ResultController;
 }) {
-  // Bind request state and result actions supplied by the job hook.
-  const { job, result, del, heading, onDelete } = useJobResult(jobController);
+  const { jobId = "" } = useParams();
+  const userId = useAuthContext().session.userId;
+  const navigate = useNavigate();
+  const [presenter] = useState(() => new ResultPresenter());
+  const view = useSyncExternalStore(presenter.subscribe, presenter.getSnapshot);
+  const job = view.job;
+  const result = view.result;
+  const del = {
+    isPending: view.deleting,
+    isError: !!view.deleteError,
+    error: view.deleteError,
+  };
+
+  useEffect(
+    () => resultController.start(userId, jobId, presenter),
+    [resultController, jobId, presenter, userId],
+  );
+
+  const analysisId =
+    job.data?.presentation.state === "completed"
+      ? job.data.jobAnalysisId
+      : null;
+  const heading =
+    result.data?.presentation.heading || job.data?.presentation.resultHeading;
+  const onDelete = () => {
+    if (job.data && window.confirm("Delete this job submission?")) {
+      void resultController
+        .deleteJob(userId, job.data.id, presenter)
+        .then((deleted) => {
+          if (deleted) navigate("/history");
+        });
+    }
+  };
 
   if (job.isLoading) return <Loading label="Retrieving your job…" />;
   if (job.isError)
-    return <ErrorNotice error={job.error} retry={() => void job.refetch()} />;
+    return (
+      <ErrorNotice
+        error={job.error}
+        retry={() => void resultController.refreshJob(userId, jobId, presenter)}
+      />
+    );
   if (!job.data) return null;
 
   // Use the loaded submission after handling pending, error, and missing states.
@@ -83,7 +117,12 @@ export function JobResultPage({
       ) : result.isLoading ? (
         <Loading label="Loading your analysis…" />
       ) : result.isError ? (
-        <ErrorNotice error={result.error} retry={() => void result.refetch()} />
+        <ErrorNotice
+          error={result.error}
+          retry={() =>
+            void resultController.refreshAnalysis(presenter, analysisId)
+          }
+        />
       ) : result.data ? (
         <div className="grid lg:grid-cols-[minmax(0,1fr)_300px] gap-7 items-start">
           <div className="space-y-9">
@@ -244,7 +283,12 @@ export function JobResultPage({
         </div>
       )}
       <div className="mt-12 pt-6 border-t border-line flex justify-between gap-3 flex-wrap">
-        <Button variant="outline" onClick={() => void job.refetch()}>
+        <Button
+          variant="outline"
+          onClick={() =>
+            void resultController.refreshJob(userId, jobId, presenter)
+          }
+        >
           <RefreshCw size={16} /> Refresh
         </Button>
         <Button variant="quiet" disabled={del.isPending} onClick={onDelete}>

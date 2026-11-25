@@ -5,7 +5,6 @@ import type {
 import { z } from "zod";
 import { listFromLines } from "../views/utils/textUtils";
 import type { CandidateContextForm } from "../../application/contracts/presenters/CandidateContextPresenterContract";
-import type { AnalysisProfilesOutput } from "../../application/use-cases/candidateContextUseCases";
 
 export type CandidateContextValidation =
   | { valid: true; values: CandidateContextForm }
@@ -25,10 +24,6 @@ type CandidateContextControllerDependencies<TOutput, TProfiles> = {
   getProfiles(contexts: CandidateContext[]): TProfiles;
   getEditorValues(context: CandidateContext): CandidateContextForm;
   listContexts(userId: string): Promise<CandidateContext[]>;
-  loadAnalysisProfiles(
-    userId: string,
-    output: AnalysisProfilesOutput,
-  ): Promise<void>;
   getPrimaryContext(contexts: CandidateContext[]): TOutput;
 };
 
@@ -114,11 +109,6 @@ export class CandidateContextController<TOutput, TProfiles> {
   // Retrieve the signed-in user's candidate contexts without changing list order.
   listContexts(userId: string) {
     return this.dependencies.listContexts(userId);
-  }
-
-  // Request selector data without managing React state or formatting the result.
-  loadAnalysisProfiles(userId: string, output: AnalysisProfilesOutput) {
-    return this.dependencies.loadAnalysisProfiles(userId, output);
   }
 
   // Select and present the primary context from the retrieved list.

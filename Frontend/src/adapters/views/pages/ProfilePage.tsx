@@ -1,30 +1,44 @@
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, FileText, Plus, Trash2 } from "lucide-react";
-import { useProfiles } from "../../hooks/useContexts";
+import { useAuthContext } from "../../AuthContext";
 import {
   Loading,
   ErrorNotice,
   EmptyState,
 } from "../components/composed/Feedback";
-import type { CandidateContextController } from "../../controllers/CandidateContextController";
-import type {
-  PrimaryContextPresentation,
-  ProfilePresentation,
-} from "../../presenters/CandidateContextPresenter";
+import type { ProfileController } from "../../controllers/ProfileController";
+import { ProfilePresenter } from "../../presenters/ProfilePresenter";
 
 // Display saved candidate profiles with editing and deletion actions.
-export function ProfilesPage({
-  candidateContextController,
+export function ProfilePage({
+  profileController,
 }: {
-  candidateContextController: CandidateContextController<
-    PrimaryContextPresentation,
-    ProfilePresentation[]
-  >;
+  profileController: ProfileController;
 }) {
-  // Bind presented profile cards and deletion handlers supplied by the context hook.
-  const { contexts, profiles, del, onDelete } = useProfiles(
-    candidateContextController,
+  const userId = useAuthContext().session.userId;
+  const [presenter] = useState(() => new ProfilePresenter());
+  const view = useSyncExternalStore(presenter.subscribe, presenter.getSnapshot);
+  const loadProfiles = useCallback(
+    () => void profileController.loadProfiles(userId, presenter),
+    [profileController, presenter, userId],
   );
+  // The protected route remounts when the authenticated user changes.
+  useEffect(() => {
+    loadProfiles();
+    return () => presenter.cancelRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Load once per page mount.
+  }, []);
+
+  const onDelete = (id: string) => {
+    if (
+      window.confirm(
+        "Delete this candidate profile? Existing job submissions may still reference it.",
+      )
+    ) {
+      void profileController.deleteProfile(userId, id, presenter);
+    }
+  };
 
   return (
     <div>
@@ -41,14 +55,11 @@ export function ProfilesPage({
           <Plus size={17} /> Create a profile
         </Link>
       </div>
-      {contexts.isLoading ? (
+      {view.profiles.status === "loading" ? (
         <Loading />
-      ) : contexts.isError ? (
-        <ErrorNotice
-          error={contexts.error}
-          retry={() => void contexts.refetch()}
-        />
-      ) : !contexts.data?.length ? (
+      ) : view.profiles.status === "error" ? (
+        <ErrorNotice error={view.profiles.error} retry={loadProfiles} />
+      ) : !view.profiles.data.length ? (
         <EmptyState
           title="Start with your first profile"
           detail="Add a role, preferences and deal-breakers to make your analyses more personal."
@@ -60,7 +71,7 @@ export function ProfilesPage({
         />
       ) : (
         <div className="grid lg:grid-cols-2 gap-6">
-          {profiles.map((p) => (
+          {view.profiles.data.map((p) => (
             <article className="card p-7" key={p.id}>
               <div className="flex justify-between gap-3 items-start mb-6">
                 <span className="eyebrow">PROFILE {p.number}</span>
@@ -87,7 +98,7 @@ export function ProfilesPage({
                   View and edit <ArrowRight size={15} />
                 </Link>
                 <button
-                  disabled={del.isPending}
+                  disabled={view.deleting}
                   aria-label="Delete profile"
                   title="Delete profile"
                   className="p-2 text-[#955b4c] hover:bg-red-50 rounded"
@@ -100,9 +111,9 @@ export function ProfilesPage({
           ))}
         </div>
       )}
-      {del.isError && (
+      {view.deleteError !== null && (
         <div className="mt-5">
-          <ErrorNotice error={del.error} />
+          <ErrorNotice error={view.deleteError} />
         </div>
       )}
     </div>

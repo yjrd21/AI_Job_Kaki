@@ -6,6 +6,11 @@ import { CandidateContextController } from "../adapters/controllers/CandidateCon
 import { JobPresenter } from "../adapters/presenters/JobPresenter";
 import { JobController } from "../adapters/controllers/JobController";
 import { AccountController } from "../adapters/controllers/AccountController";
+import { AnalysisController } from "../adapters/controllers/AnalysisController";
+import { HistoryController } from "../adapters/controllers/HistoryController";
+import { ResultController } from "../adapters/controllers/ResultController";
+import { ProfileController } from "../adapters/controllers/ProfileController";
+import { ProfileEditorController } from "../adapters/controllers/ProfileEditorController";
 import { HttpUserRepository } from "../adapters/repositories/HttpUserRepository";
 import { HttpCandidateContextRepository } from "../adapters/repositories/HttpCandidateContextRepository";
 import { HttpJobRepository } from "../adapters/repositories/HttpJobRepository";
@@ -23,7 +28,6 @@ import {
   getCandidateContext,
   getPrimaryCandidateContext,
   listCandidateContexts,
-  loadAnalysisProfiles,
   presentCandidateContextEditor,
   presentCandidateProfiles,
   saveCandidateContext,
@@ -91,11 +95,22 @@ export const candidateContextController = new CandidateContextController({
   getEditorValues: (context) =>
     presentCandidateContextEditor(context, candidateContextPresenter),
   listContexts: (userId) => listCandidateContexts(contextRepository, userId),
-  loadAnalysisProfiles: (userId, output) =>
-    loadAnalysisProfiles(contextRepository, userId, output),
   getPrimaryContext: (contexts) =>
     getPrimaryCandidateContext(contexts, candidateContextPresenter),
 });
+
+export const analysisController = new AnalysisController(
+  jobController,
+  candidateContextController,
+);
+export const historyController = new HistoryController(jobController);
+export const resultController = new ResultController(jobController);
+export const profileController = new ProfileController(
+  candidateContextController,
+);
+export const profileEditorController = new ProfileEditorController(
+  candidateContextController,
+);
 
 export const onboardingController = new OnboardingController({
   getAccount: (userId) => getAccount(userRepository, userId),

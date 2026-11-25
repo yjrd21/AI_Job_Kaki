@@ -5,36 +5,31 @@ import { Loading } from "./components/composed/Feedback";
 import { LoginPage } from "./pages/LoginPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
 import { DashboardPage } from "./pages/DashboardPage";
-import { AnalyseJobPage } from "./pages/AnalyseJobPage";
-import { JobHistoryPage } from "./pages/JobHistoryPage";
-import { JobResultPage } from "./pages/JobResultPage";
-import { ProfilesPage } from "./pages/ProfilesPage";
+import { AnalysisPage } from "./pages/AnalysisPage";
+import { HistoryPage } from "./pages/HistoryPage";
+import { ResultPage } from "./pages/ResultPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import { ProfileEditorPage } from "./pages/ProfileEditorPage";
 import { AccountPage } from "./pages/AccountPage";
 import type { DashboardController } from "../controllers/DashboardController";
 import type { LoginController } from "../controllers/LoginController";
 import type { AccountController } from "../controllers/AccountController";
-import type { JobController } from "../controllers/JobController";
-import type { CandidateContextController } from "../controllers/CandidateContextController";
+import type { AnalysisController } from "../controllers/AnalysisController";
+import type { HistoryController } from "../controllers/HistoryController";
+import type { ResultController } from "../controllers/ResultController";
+import type { ProfileController } from "../controllers/ProfileController";
+import type { ProfileEditorController } from "../controllers/ProfileEditorController";
 import type { OnboardingController } from "../controllers/OnboardingController";
-import type {
-  JobAnalysisPresentation,
-  JobPresentation,
-} from "../presenters/JobPresenter";
-import type {
-  PrimaryContextPresentation,
-  ProfilePresentation,
-} from "../presenters/CandidateContextPresenter";
 
 type RouteControllers = {
   accountController: AccountController;
   dashboardController: DashboardController;
   loginController: LoginController;
-  jobController: JobController<JobPresentation, JobAnalysisPresentation>;
-  candidateContextController: CandidateContextController<
-    PrimaryContextPresentation,
-    ProfilePresentation[]
-  >;
+  analysisController: AnalysisController;
+  historyController: HistoryController;
+  resultController: ResultController;
+  profileController: ProfileController;
+  profileEditorController: ProfileEditorController;
   onboardingController: OnboardingController;
 };
 
@@ -97,33 +92,32 @@ export function createAppRouter(controllers: RouteControllers) {
                 {
                   path: "/analyse",
                   element: (
-                    <AnalyseJobPage
-                      jobController={controllers.jobController}
-                      candidateContextController={
-                        controllers.candidateContextController
-                      }
+                    <AnalysisPage
+                      analysisController={controllers.analysisController}
                     />
                   ),
                 },
                 {
                   path: "/history",
                   element: (
-                    <JobHistoryPage jobController={controllers.jobController} />
+                    <HistoryPage
+                      historyController={controllers.historyController}
+                    />
                   ),
                 },
                 {
                   path: "/jobs/:jobId",
                   element: (
-                    <JobResultPage jobController={controllers.jobController} />
+                    <ResultPage
+                      resultController={controllers.resultController}
+                    />
                   ),
                 },
                 {
                   path: "/profiles",
                   element: (
-                    <ProfilesPage
-                      candidateContextController={
-                        controllers.candidateContextController
-                      }
+                    <ProfilePage
+                      profileController={controllers.profileController}
                     />
                   ),
                 },
@@ -131,8 +125,8 @@ export function createAppRouter(controllers: RouteControllers) {
                   path: "/profiles/new",
                   element: (
                     <ProfileEditorPage
-                      candidateContextController={
-                        controllers.candidateContextController
+                      profileEditorController={
+                        controllers.profileEditorController
                       }
                     />
                   ),
@@ -141,8 +135,8 @@ export function createAppRouter(controllers: RouteControllers) {
                   path: "/profiles/:contextId",
                   element: (
                     <ProfileEditorPage
-                      candidateContextController={
-                        controllers.candidateContextController
+                      profileEditorController={
+                        controllers.profileEditorController
                       }
                     />
                   ),

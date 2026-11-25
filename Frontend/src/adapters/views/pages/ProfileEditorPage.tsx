@@ -1,34 +1,81 @@
-import { useProfileEditor } from "../../hooks/useContexts";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useForm, type ResolverResult } from "react-hook-form";
+import { useAuthContext } from "../../AuthContext";
 import { Link } from "react-router-dom";
 import { ArrowLeft, FileText, Info, Save } from "lucide-react";
 import { Button } from "../components/primitives/Button";
 import { ErrorNotice, Loading } from "../components/composed/Feedback";
-import type { CandidateContextController } from "../../controllers/CandidateContextController";
-import type {
-  PrimaryContextPresentation,
-  ProfilePresentation,
-} from "../../presenters/CandidateContextPresenter";
+import type { ProfileEditorController } from "../../controllers/ProfileEditorController";
+import type { CandidateContextForm } from "../../../application/contracts/presenters/CandidateContextPresenterContract";
+import { ProfileEditorPresenter } from "../../presenters/ProfileEditorPresenter";
 
 // Create or edit a candidate profile with an optional replacement CV.
 export function ProfileEditorPage({
-  candidateContextController,
+  profileEditorController,
 }: {
-  candidateContextController: CandidateContextController<
-    PrimaryContextPresentation,
-    ProfilePresentation[]
-  >;
+  profileEditorController: ProfileEditorController;
 }) {
-  // Bind profile editor state and handlers supplied by the candidate context hook.
-  const {
-    editing,
-    query,
-    save,
-    form,
-    file,
-    fileError,
-    onSubmit,
-    onFileChange,
-  } = useProfileEditor(candidateContextController);
+  const { contextId } = useParams();
+  const editing = !!contextId;
+  const userId = useAuthContext().session.userId;
+  const navigate = useNavigate();
+  const [presenter] = useState(() => new ProfileEditorPresenter());
+  const view = useSyncExternalStore(presenter.subscribe, presenter.getSnapshot);
+  const form = useForm<CandidateContextForm>({
+    resolver: (values): ResolverResult<CandidateContextForm> => {
+      const result = profileEditorController.validateProfile(values);
+
+      if (result.valid) return { values: result.values, errors: {} };
+
+      return {
+        values: {},
+        errors: {
+          roles: result.errors.roles
+            ? { type: "validate", message: result.errors.roles }
+            : undefined,
+          preferences: result.errors.preferences
+            ? { type: "validate", message: result.errors.preferences }
+            : undefined,
+          redFlags: result.errors.redFlags
+            ? { type: "validate", message: result.errors.redFlags }
+            : undefined,
+        },
+      };
+    },
+    defaultValues: { roles: "", preferences: "", redFlags: "" },
+  });
+  const loadProfile = useCallback(() => {
+    if (contextId) {
+      void profileEditorController.loadProfile(userId, contextId, presenter);
+    }
+  }, [contextId, profileEditorController, presenter, userId]);
+
+  useEffect(() => {
+    if (editing) {
+      loadProfile();
+      return () => presenter.cancelRequests();
+    }
+  }, [editing, loadProfile, presenter]);
+
+  useEffect(() => {
+    if (view.profile.status === "ready") {
+      form.reset(view.profile.values);
+    }
+  }, [view.profile, form]);
+
+  const onSubmit = form.handleSubmit(async (values) => {
+    const saved = await profileEditorController.saveProfile(
+      userId,
+      contextId,
+      values,
+      presenter,
+    );
+    if (saved) navigate("/profiles");
+  });
+  const onFileChange = (next: File | null) => {
+    void profileEditorController.chooseCv(next, presenter);
+  };
 
   return (
     <div className="max-w-3xl">
@@ -46,10 +93,11 @@ export function ProfileEditorPage({
         Your profile describes where you want to go, what matters to you, and
         the signals you'd rather avoid.
       </p>
-      {editing && query.isLoading ? (
+      {editing &&
+      (view.profile.status === "idle" || view.profile.status === "loading") ? (
         <Loading />
-      ) : editing && query.isError ? (
-        <ErrorNotice error={query.error} />
+      ) : editing && view.profile.status === "error" ? (
+        <ErrorNotice error={view.profile.error} retry={loadProfile} />
       ) : (
         <form onSubmit={(e) => void onSubmit(e)} className="space-y-6">
           <div className="card p-6 sm:p-8">
@@ -119,33 +167,45 @@ export function ProfileEditorPage({
                 PDF, DOC, or DOCX, up to 5 MiB. Your CV is sent to the AI with
                 each job analysis to assess your qualifications.
               </p>
-              {query.data?.cvFileName && !file && (
-                <p className="text-sm mt-3">
-                  Existing file: {query.data.cvFileName}
-                </p>
-              )}
+              {view.profile.status === "ready" &&
+                view.profile.cvFileName &&
+                !view.cv && (
+                  <p className="text-sm mt-3">
+                    Existing file: {view.profile.cvFileName}
+                  </p>
+                )}
             </div>
+            {view.cvLoading && (
+              <p className="text-sm muted mt-3">Reading CV…</p>
+            )}
             <p className="text-xs muted mt-3 flex gap-2">
               <Info size={15} className="shrink-0" />
               The current API does not support downloading an existing CV.
             </p>
           </div>
-          {fileError && (
+          {view.fileError && (
             <p className="text-red-700 text-sm" role="alert">
-              {fileError}
+              {view.fileError}
             </p>
           )}
-          {save.isError && <ErrorNotice error={save.error} />}
+          {view.save.status === "error" && (
+            <ErrorNotice error={view.save.error} />
+          )}
           <div className="flex justify-end gap-3">
             <Link to="/profiles" className="btn btn-outline">
               Cancel
             </Link>
             <Button
               type="submit"
-              disabled={save.isPending || form.formState.isSubmitting}
+              disabled={
+                view.save.status === "saving" ||
+                form.formState.isSubmitting ||
+                view.cvLoading ||
+                view.fileError !== null
+              }
             >
               <Save size={16} />
-              {save.isPending ? "Saving…" : "Save profile"}
+              {view.save.status === "saving" ? "Saving…" : "Save profile"}
             </Button>
           </div>
         </form>

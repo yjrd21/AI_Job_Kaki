@@ -22,6 +22,8 @@ export function DashboardPage({
   const [presenter] = useState(() => new DashboardPresenter());
   const view = useSyncExternalStore(presenter.subscribe, presenter.getSnapshot);
 
+  // Guard remounts the protected route when the user identity changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Load once per dashboard mount.
   useEffect(() => dashboardController.refreshDashboard(userId, presenter), []);
 
   const { primaryContext, recentAnalysis } = view;

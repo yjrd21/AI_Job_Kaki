@@ -6,6 +6,11 @@ import { CandidateContextController } from "../../src/adapters/controllers/Candi
 import { JobPresenter } from "../../src/adapters/presenters/JobPresenter";
 import { JobController } from "../../src/adapters/controllers/JobController";
 import { AccountController } from "../../src/adapters/controllers/AccountController";
+import { AnalysisController } from "../../src/adapters/controllers/AnalysisController";
+import { HistoryController } from "../../src/adapters/controllers/HistoryController";
+import { ResultController } from "../../src/adapters/controllers/ResultController";
+import { ProfileController } from "../../src/adapters/controllers/ProfileController";
+import { ProfileEditorController } from "../../src/adapters/controllers/ProfileEditorController";
 import { vi } from "vitest";
 import {
   getAccount,
@@ -16,7 +21,6 @@ import {
   getCandidateContext,
   getPrimaryCandidateContext,
   listCandidateContexts,
-  loadAnalysisProfiles,
   presentCandidateContextEditor,
   presentCandidateProfiles,
   saveCandidateContext,
@@ -171,11 +175,19 @@ export function makeControllers(
       presentCandidateContextEditor(context, candidateContextPresenter),
     listContexts: (userId) =>
       listCandidateContexts(repositories.contexts, userId),
-    loadAnalysisProfiles: (userId, output) =>
-      loadAnalysisProfiles(repositories.contexts, userId, output),
     getPrimaryContext: (contexts) =>
       getPrimaryCandidateContext(contexts, candidateContextPresenter),
   });
+  const analysisController = new AnalysisController(
+    jobController,
+    candidateContextController,
+  );
+  const historyController = new HistoryController(jobController);
+  const resultController = new ResultController(jobController);
+  const profileController = new ProfileController(candidateContextController);
+  const profileEditorController = new ProfileEditorController(
+    candidateContextController,
+  );
   const onboardingController = new OnboardingController({
     getAccount: (userId) => getAccount(repositories.users, userId),
     finishOnboarding: (userId, input, progress) =>
@@ -201,6 +213,11 @@ export function makeControllers(
     loginController,
     dashboardController,
     candidateContextController,
+    analysisController,
+    historyController,
+    resultController,
+    profileController,
+    profileEditorController,
     accountController,
     jobController,
     jobPresenter,

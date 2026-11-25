@@ -8,11 +8,11 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { describe, expect, it } from "vitest";
-import { AnalyseJobPage } from "../../../../src/adapters/views/pages/AnalyseJobPage";
-import { AuthSessionProvider } from "../../../../src/infrastructure/providers/AuthSessionProvider";
+import { AnalysisPage } from "../../../../src/adapters/views/pages/AnalysisPage";
+import { AuthContext } from "../../../../src/adapters/AuthContext";
 import {
   makeControllers,
-  makeSession,
+  makeAuthContextValue,
   profile,
 } from "../../../fixtures/application";
 import type { CandidateContext } from "../../../../src/domain/models/CandidateContext";
@@ -26,16 +26,14 @@ function renderAnalyse(
     repositories: ReturnType<typeof makeControllers>["repositories"],
   ) => void,
 ) {
-  const { candidateContextController, jobController, repositories } =
-    makeControllers();
+  const { analysisController, repositories } = makeControllers();
   configure?.(repositories);
-  const session = makeSession();
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <AuthSessionProvider session={session}>
+      <AuthContext.Provider value={makeAuthContextValue()}>
         <MemoryRouter
           initialEntries={[path]}
           future={{
@@ -47,17 +45,12 @@ function renderAnalyse(
           <Routes>
             <Route
               path="/analyse"
-              element={
-                <AnalyseJobPage
-                  jobController={jobController}
-                  candidateContextController={candidateContextController}
-                />
-              }
+              element={<AnalysisPage analysisController={analysisController} />}
             />
             <Route path="/jobs/:jobId" element={<h1>Submission created</h1>} />
           </Routes>
         </MemoryRouter>
-      </AuthSessionProvider>
+      </AuthContext.Provider>
     </QueryClientProvider>,
   );
   return repositories;
@@ -127,28 +120,26 @@ describe("candidate profile selection", () => {
     ).toBeDisabled();
   });
 
-  it("shows the create-profile prompt and disables submission when profiles fail to load", async () => {
-    const request = deferredProfiles();
-    renderAnalyse("/analyse", (repositories) => {
-      repositories.contexts.list.mockReturnValue(request.promise);
+  it("shows profile load failures and allows the user to retry", async () => {
+    const repositories = renderAnalyse("/analyse", (repositories) => {
+      repositories.contexts.list
+        .mockRejectedValueOnce(new Error("Profiles unavailable"))
+        .mockResolvedValueOnce([profile]);
     });
-    expect(await screen.findByText("Loading…")).toBeInTheDocument();
-
-    await act(async () => request.reject(new Error("Profiles unavailable")));
-
+    await waitFor(() =>
+      expect(repositories.contexts.list).toHaveBeenCalledTimes(1),
+    );
     expect(
-      await screen.findByText(
-        /Create a candidate profile before submitting jobs/,
-      ),
+      await screen.findByText("Unable to load candidate profiles."),
     ).toBeInTheDocument();
-    expect(screen.queryByText("Loading…")).not.toBeInTheDocument();
-    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Create profile →" }),
-    ).toHaveAttribute("href", "/profiles/new");
     expect(
       screen.getByRole("button", { name: "Analyse this job" }),
     ).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(
+      await screen.findByRole("option", { name: "Engineer — cv.pdf" }),
+    ).toBeInTheDocument();
+    expect(repositories.contexts.list).toHaveBeenCalledTimes(2);
   });
 
   it("shows profile labels in list order and submits the selected profile", async () => {
