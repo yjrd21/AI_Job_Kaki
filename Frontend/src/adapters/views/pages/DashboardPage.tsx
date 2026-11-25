@@ -1,36 +1,30 @@
 import { ArrowRight, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
-import { usePrimaryContext } from "../../hooks/useContexts";
-import { useJobs } from "../../hooks/useJobs";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { useAuthContext } from "../../AuthContext";
 import { Loading, ErrorNotice } from "../components/composed/Feedback";
 import { RecentAnalysisCard } from "../components/composed/RecentAnalysisCard";
-import type { JobController } from "../../controllers/JobController";
-import type { CandidateContextController } from "../../controllers/CandidateContextController";
-import type {
-  JobAnalysisPresentation,
-  JobPresentation,
-} from "../../presenters/JobPresenter";
-import type {
-  PrimaryContextPresentation,
-  ProfilePresentation,
-} from "../../presenters/CandidateContextPresenter";
+import type { DashboardController } from "../../controllers/DashboardController";
+import { DashboardPresenter } from "../../presenters/DashboardPresenter";
 
 // Display the primary candidate context and most recent job analysis.
 export function DashboardPage({
-  jobController,
-  candidateContextController,
+  dashboardController,
 }: {
-  jobController: JobController<JobPresentation, JobAnalysisPresentation>;
-  candidateContextController: CandidateContextController<
-    PrimaryContextPresentation,
-    ProfilePresentation[]
-  >;
+  dashboardController: DashboardController;
 }) {
-  // Read primary-context display output prepared through the controller and use case.
-  const primaryContext = usePrimaryContext(candidateContextController);
+  const userId = useAuthContext().session.userId;
 
-  // Load submission history for the recent analysis card.
-  const jobs = useJobs(jobController);
+  if (!userId) {
+    throw new Error("Dashboard requires a user ID");
+  }
+
+  const [presenter] = useState(() => new DashboardPresenter());
+  const view = useSyncExternalStore(presenter.subscribe, presenter.getSnapshot);
+
+  useEffect(() => dashboardController.refreshDashboard(userId, presenter), []);
+
+  const { primaryContext, recentAnalysis } = view;
 
   return (
     <div>
@@ -52,21 +46,28 @@ export function DashboardPage({
 
         <section className="card p-7" aria-label="Primary Context">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
-            <h2 className="section-title">{primaryContext.data?.heading}</h2>
-            {primaryContext.data?.state === "ready" && (
-              <span className="text-xs font-semibold">
-                {primaryContext.data.statusLabel}
-              </span>
-            )}
+            <h2 className="section-title">
+              {primaryContext.state === "ready"
+                ? primaryContext.data.heading
+                : "Primary Context"}
+            </h2>
+            {primaryContext.state === "ready" &&
+              primaryContext.data.state === "ready" && (
+                <span className="text-xs font-semibold">
+                  {primaryContext.data.statusLabel}
+                </span>
+              )}
           </div>
-          {primaryContext.isPending ? (
+          {primaryContext.state === "loading" ? (
             <Loading label="Loading candidate profile…" />
-          ) : primaryContext.isError ? (
+          ) : primaryContext.state === "error" ? (
             <ErrorNotice
               error={primaryContext.error}
-              retry={() => void primaryContext.refetch()}
+              retry={() =>
+                void dashboardController.loadPrimaryContext(userId, presenter)
+              }
             />
-          ) : primaryContext.data?.state === "ready" ? (
+          ) : primaryContext.data.state === "ready" ? (
             <>
               <h3 className="font-semibold text-lg mb-5">
                 {primaryContext.data.title}
@@ -99,7 +100,7 @@ export function DashboardPage({
                 {primaryContext.data.actionLabel}
               </Link>
             </>
-          ) : primaryContext.data?.state === "empty" ? (
+          ) : (
             <>
               <p className="muted text-sm mb-4">
                 {primaryContext.data.message}
@@ -111,7 +112,7 @@ export function DashboardPage({
                 {primaryContext.data.actionLabel}
               </Link>
             </>
-          ) : null}
+          )}
         </section>
       </div>
 
@@ -122,7 +123,12 @@ export function DashboardPage({
             View job history →
           </Link>
         </div>
-        <RecentAnalysisCard jobs={jobs} />
+        <RecentAnalysisCard
+          view={recentAnalysis}
+          onRetry={() =>
+            void dashboardController.loadRecentAnalysis(userId, presenter)
+          }
+        />
       </section>
     </div>
   );
