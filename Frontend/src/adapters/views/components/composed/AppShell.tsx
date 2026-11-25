@@ -1,4 +1,3 @@
-import { useContext } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -12,7 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
-import { AuthContainer } from "../../../containers/AuthContainer";
+import { useAuthContext } from "../../../AuthContext";
 
 // Define the sidebar destinations, labels, and icons.
 const navigation = [
@@ -35,11 +34,7 @@ function currentNavigationPath(pathname: string) {
 // Render shared navigation, account controls, and the active protected page.
 export function AppShell() {
   // Read session state and authentication actions from the provider.
-  const auth = useContext(AuthContainer);
-
-  if (!auth) {
-    throw new Error("AuthContainer provider missing");
-  }
+  const auth = useAuthContext();
 
   // Track whether the mobile navigation drawer is open.
   const [open, setOpen] = useState(false);
@@ -103,11 +98,11 @@ export function AppShell() {
         <div className="app-sidebar__account">
           <div className="app-sidebar__account-summary">
             <div className="app-sidebar__avatar" aria-hidden="true">
-              {auth.name?.charAt(0) || "K"}
+              {auth.session.name?.charAt(0) || "K"}
             </div>
             <div className="app-sidebar__account-copy">
               <div className="app-sidebar__account-name">
-                {auth.name || "JobKaki user"}
+                {auth.session.name || "JobKaki user"}
               </div>
               <div className="app-sidebar__account-plan">
                 Personal workspace
@@ -116,7 +111,7 @@ export function AppShell() {
           </div>
           <button
             type="button"
-            onClick={() => void auth.logout()}
+            onClick={() => void auth.actions.logout()}
             className="app-sidebar__logout"
           >
             <LogOut size={15} aria-hidden="true" /> Log out
@@ -149,7 +144,7 @@ export function AppShell() {
               <HelpCircle size={19} />
             </a>
             <span className="app-shell__header-avatar" aria-hidden="true">
-              {auth.name?.charAt(0) || "K"}
+              {auth.session.name?.charAt(0) || "K"}
             </span>
           </div>
         </header>

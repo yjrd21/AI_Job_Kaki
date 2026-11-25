@@ -1,8 +1,8 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useForm, type ResolverResult } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AuthContainer } from "../containers/AuthContainer";
+import { useAuthContext } from "../AuthContext";
 import type { JobController, JobInput } from "../controllers/JobController";
 import type {
   JobAnalysisPresentation,
@@ -21,13 +21,9 @@ export const jobKeys = {
 // Load the signed-in user's submissions into the query cache.
 export function useJobs(controller: JobsController) {
   // Read the signed-in user identifier for user-scoped operations.
-  const auth = useContext(AuthContainer);
+  const auth = useAuthContext();
 
-  if (!auth) {
-    throw new Error("AuthContainer provider missing");
-  }
-
-  const { userId } = auth;
+  const { userId } = auth.session;
 
   return useQuery({
     queryKey: jobKeys.all(userId!),
@@ -39,13 +35,9 @@ export function useJobs(controller: JobsController) {
 // Poll an active submission every 2.5 seconds until processing completes or fails.
 export function useJob(id: string, controller: JobsController) {
   // Read the signed-in user identifier for user-scoped operations.
-  const auth = useContext(AuthContainer);
+  const auth = useAuthContext();
 
-  if (!auth) {
-    throw new Error("AuthContainer provider missing");
-  }
-
-  const { userId } = auth;
+  const { userId } = auth.session;
 
   return useQuery({
     queryKey: jobKeys.one(userId!, id),
@@ -73,13 +65,9 @@ export function useAnalysis(
 // Submit a job and invalidate the current user's cached submission list.
 export function useSubmitJob(controller: JobsController) {
   // Read the signed-in user identifier for user-scoped operations.
-  const auth = useContext(AuthContainer);
+  const auth = useAuthContext();
 
-  if (!auth) {
-    throw new Error("AuthContainer provider missing");
-  }
-
-  const { userId } = auth;
+  const { userId } = auth.session;
 
   // Access the query cache so successful mutations can invalidate related data.
   const qc = useQueryClient();
@@ -94,13 +82,9 @@ export function useSubmitJob(controller: JobsController) {
 // Delete a submission and invalidate the current user's cached submission list.
 export function useDeleteJob(controller: JobsController) {
   // Read the signed-in user identifier for user-scoped operations.
-  const auth = useContext(AuthContainer);
+  const auth = useAuthContext();
 
-  if (!auth) {
-    throw new Error("AuthContainer provider missing");
-  }
-
-  const { userId } = auth;
+  const { userId } = auth.session;
 
   // Access the query cache so successful mutations can invalidate related data.
   const qc = useQueryClient();

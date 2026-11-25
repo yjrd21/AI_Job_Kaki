@@ -1,15 +1,9 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm, type ResolverResult } from "react-hook-form";
 import { fileToBase64 } from "../views/utils/fileUtils";
-import {
-  useCallback,
-  useContext as useReactContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AuthContainer } from "../containers/AuthContainer";
+import { useAuthContext } from "../AuthContext";
 import type {
   CandidateContext,
   CandidateContextInput,
@@ -29,13 +23,9 @@ type ContextController = CandidateContextController<
 // Load the signed-in user's candidate profiles into the query cache.
 export function useContexts(controller: ContextController) {
   // Read the signed-in user identifier for user-scoped operations.
-  const auth = useReactContext(AuthContainer);
+  const auth = useAuthContext();
 
-  if (!auth) {
-    throw new Error("AuthContainer provider missing");
-  }
-
-  const { userId } = auth;
+  const { userId } = auth.session;
 
   return useQuery({
     queryKey: ["contexts", userId],
@@ -47,13 +37,9 @@ export function useContexts(controller: ContextController) {
 // Load one candidate profile when both the user and profile identifiers are available.
 export function useContext(id: string, controller: ContextController) {
   // Read the signed-in user identifier for user-scoped operations.
-  const auth = useReactContext(AuthContainer);
+  const auth = useAuthContext();
 
-  if (!auth) {
-    throw new Error("AuthContainer provider missing");
-  }
-
-  const { userId } = auth;
+  const { userId } = auth.session;
 
   return useQuery({
     queryKey: ["context", userId, id],
@@ -68,13 +54,9 @@ export function useSaveContext(
   controller: ContextController,
 ) {
   // Read the signed-in user identifier for user-scoped operations.
-  const auth = useReactContext(AuthContainer);
+  const auth = useAuthContext();
 
-  if (!auth) {
-    throw new Error("AuthContainer provider missing");
-  }
-
-  const { userId } = auth;
+  const { userId } = auth.session;
 
   // Access the query cache so successful mutations can invalidate related data.
   const qc = useQueryClient();
@@ -92,13 +74,9 @@ export function useSaveContext(
 // Delete a candidate profile and refresh the user's profile list.
 export function useDeleteContext(controller: ContextController) {
   // Read the signed-in user identifier for user-scoped operations.
-  const auth = useReactContext(AuthContainer);
+  const auth = useAuthContext();
 
-  if (!auth) {
-    throw new Error("AuthContainer provider missing");
-  }
-
-  const { userId } = auth;
+  const { userId } = auth.session;
 
   // Access the query cache so successful mutations can invalidate related data.
   const qc = useQueryClient();
@@ -113,13 +91,9 @@ export function useDeleteContext(controller: ContextController) {
 // Observe the shared context list and expose primary-context output prepared by the use case presenter.
 export function usePrimaryContext(controller: ContextController) {
   // Scope the shared candidate context cache to the authenticated user.
-  const auth = useReactContext(AuthContainer);
+  const auth = useAuthContext();
 
-  if (!auth) {
-    throw new Error("AuthContainer provider missing");
-  }
-
-  const { userId } = auth;
+  const { userId } = auth.session;
 
   // Reuse prepared output until the cached list or injected controller changes.
   const selectPrimary = useCallback(

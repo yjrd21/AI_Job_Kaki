@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Link,
@@ -8,7 +8,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { ArrowLeft, ArrowRight, CheckCircle2, FileText } from "lucide-react";
-import { AuthContainer } from "../../containers/AuthContainer";
+import { useAuthContext } from "../../AuthContext";
 import { Button } from "../components/primitives/Button";
 import { Alert } from "../components/primitives/Alert";
 import { StepProgress } from "../components/primitives/StepProgress";
@@ -23,13 +23,9 @@ export function OnboardingPage({
   onboardingController: OnboardingController;
 }) {
   // Get the authenticated user's ID from the context.
-  const auth = useContext(AuthContainer);
-
-  if (!auth) {
-    throw new Error("AuthContainer provider missing");
-  }
-
-  const { userId } = auth;
+  const {
+    session: { userId },
+  } = useAuthContext();
 
   // Get the query client for caching and invalidating queries.
   const queryClient = useQueryClient();

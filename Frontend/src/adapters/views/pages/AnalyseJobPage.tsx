@@ -1,5 +1,5 @@
-import { useContext, useEffect, useMemo, useSyncExternalStore } from "react";
-import { AuthContainer } from "../../containers/AuthContainer";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { useAuthContext } from "../../AuthContext";
 import {
   AnalysisProfilesPresenter,
   AnalysisProfilesStore,
@@ -35,10 +35,12 @@ export function AnalyseJobPage({
   const { submit, form, kind, onSubmit, onSubmissionTypeChange } =
     useAnalyseJobForm(jobController);
 
-  const auth = useContext(AuthContainer);
-  if (!auth) throw new Error("AuthContainer provider missing");
+  const auth = useAuthContext();
 
-  const userId = auth.ready && auth.authenticated ? auth.userId : null;
+  const userId =
+    auth.lifecycle.ready && auth.session.authenticated
+      ? auth.session.userId
+      : null;
   // Keep the presenter/store local to this view and replace them when its owner changes.
   const profilesBinding = useMemo(
     () => ({

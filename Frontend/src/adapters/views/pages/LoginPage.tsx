@@ -1,14 +1,23 @@
 import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 import { Navigate } from "react-router-dom";
-import { useLogin } from "../../hooks/useAuthSession";
+import { useState, useSyncExternalStore } from "react";
+import { useAuthContext } from "../../AuthContext";
+import type { LoginController } from "../../controllers/LoginController";
+import { LoginPresenter } from "../../presenters/LoginPresenter";
 import { Button } from "../components/primitives/Button";
 
 // Display the sign-in page and redirect authenticated users to their dashboard.
-export function LoginPage() {
-  // Bind sign-in state and the login event supplied by the authentication hook.
-  const auth = useLogin();
+export function LoginPage({
+  loginController,
+}: {
+  loginController: LoginController;
+}) {
+  const auth = useAuthContext();
+  const [presenter] = useState(() => new LoginPresenter());
+  const view = useSyncExternalStore(presenter.subscribe, presenter.getSnapshot);
 
-  if (auth.authenticated) return <Navigate to="/dashboard" replace />;
+  if (auth.session.authenticated) return <Navigate to="/dashboard" replace />;
+  const error = view.error || auth.session.error;
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       <div className="bg-forest text-white p-9 sm:p-16 flex flex-col justify-between">
@@ -45,15 +54,15 @@ export function LoginPage() {
             Sign in to create candidate profiles, analyse jobs, and revisit your
             results.
           </p>
-          {auth.error && (
+          {error && (
             <p role="alert" className="text-red-700 text-sm mb-4">
-              {auth.error}
+              {error}
             </p>
           )}
           <Button
             className="w-full"
-            onClick={auth.onLogin}
-            disabled={auth.isPending}
+            onClick={() => void loginController.login(presenter)}
+            disabled={view.submitting}
           >
             Continue with Keycloak <ArrowRight size={18} />
           </Button>

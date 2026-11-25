@@ -1,20 +1,16 @@
-import { useContext, useEffect } from "react";
+import { useEffect } from "react";
 import { useForm, type ResolverResult } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AccountFormInput } from "../controllers/AccountController";
 import type { AccountController } from "../controllers/AccountController";
-import { AuthContainer } from "../containers/AuthContainer";
+import { useAuthContext } from "../AuthContext";
 
 // Load account details using the cache shared with onboarding checks.
 export function useAccount(controller: AccountController) {
   // Read the signed-in user identifier for user-scoped operations.
-  const auth = useContext(AuthContainer);
+  const auth = useAuthContext();
 
-  if (!auth) {
-    throw new Error("AuthContainer provider missing");
-  }
-
-  const { userId } = auth;
+  const { userId } = auth.session;
 
   return useQuery({
     queryKey: ["account", userId],
@@ -26,13 +22,9 @@ export function useAccount(controller: AccountController) {
 // Save account changes and refresh the shared account query.
 export function useSaveAccount(controller: AccountController) {
   // Read the signed-in user identifier for user-scoped operations.
-  const auth = useContext(AuthContainer);
+  const auth = useAuthContext();
 
-  if (!auth) {
-    throw new Error("AuthContainer provider missing");
-  }
-
-  const { userId } = auth;
+  const { userId } = auth.session;
 
   // Access the query cache so successful mutations can refresh account data.
   const queryClient = useQueryClient();
