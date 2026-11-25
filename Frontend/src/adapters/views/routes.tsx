@@ -1,7 +1,6 @@
-import { useContext } from "react";
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import { AppShell } from "./components/composed/AppShell";
-import { AuthContainer } from "../containers/AuthContainer";
+import { useAuthContext } from "../AuthContext";
 import { Loading } from "./components/composed/Feedback";
 import { LoginPage } from "./pages/LoginPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
@@ -12,6 +11,8 @@ import { JobResultPage } from "./pages/JobResultPage";
 import { ProfilesPage } from "./pages/ProfilesPage";
 import { ProfileEditorPage } from "./pages/ProfileEditorPage";
 import { AccountPage } from "./pages/AccountPage";
+import type { DashboardController } from "../controllers/DashboardController";
+import type { LoginController } from "../controllers/LoginController";
 import type { AccountController } from "../controllers/AccountController";
 import type { JobController } from "../controllers/JobController";
 import type { CandidateContextController } from "../controllers/CandidateContextController";
@@ -27,6 +28,8 @@ import type {
 
 type RouteControllers = {
   accountController: AccountController;
+  dashboardController: DashboardController;
+  loginController: LoginController;
   jobController: JobController<JobPresentation, JobAnalysisPresentation>;
   candidateContextController: CandidateContextController<
     PrimaryContextPresentation,
@@ -38,20 +41,16 @@ type RouteControllers = {
 // Wait for session restoration and restrict protected routes to identified users.
 function Guard() {
   // Read session state and authentication actions from the provider.
-  const auth = useContext(AuthContainer);
+  const auth = useAuthContext();
 
-  if (!auth) {
-    throw new Error("AuthContainer provider missing");
-  }
-
-  if (!auth.ready)
+  if (!auth.lifecycle.ready)
     return (
       <div className="p-10">
         <Loading label="Connecting to identity provider…" />
       </div>
     );
-  if (!auth.authenticated) return <Navigate to="/login" replace />;
-  if (!auth.userId)
+  if (!auth.session.authenticated) return <Navigate to="/login" replace />;
+  if (!auth.session.userId)
     return (
       <div className="p-10 max-w-xl">
         <h1 className="page-title">Account mapping required</h1>
@@ -61,13 +60,18 @@ function Guard() {
         </p>
       </div>
     );
-  return <Outlet key={`${auth.userId}:${auth.sessionVersion}`} />;
+  return (
+    <Outlet key={`${auth.session.userId}:${auth.lifecycle.sessionVersion}`} />
+  );
 }
 
 // Connect controller dependencies to views at the route composition boundary.
 export function createAppRouter(controllers: RouteControllers) {
   return createBrowserRouter([
-    { path: "/login", element: <LoginPage /> },
+    {
+      path: "/login",
+      element: <LoginPage loginController={controllers.loginController} />,
+    },
     {
       element: <Guard />,
       children: [
@@ -86,10 +90,7 @@ export function createAppRouter(controllers: RouteControllers) {
                   path: "/dashboard",
                   element: (
                     <DashboardPage
-                      jobController={controllers.jobController}
-                      candidateContextController={
-                        controllers.candidateContextController
-                      }
+                      dashboardController={controllers.dashboardController}
                     />
                   ),
                 },

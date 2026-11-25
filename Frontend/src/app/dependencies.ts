@@ -1,4 +1,6 @@
 import { OnboardingController } from "../adapters/controllers/OnboardingController";
+import { DashboardController } from "../adapters/controllers/DashboardController";
+import { LoginController } from "../adapters/controllers/LoginController";
 import { CandidateContextPresenter } from "../adapters/presenters/CandidateContextPresenter";
 import { CandidateContextController } from "../adapters/controllers/CandidateContextController";
 import { JobPresenter } from "../adapters/presenters/JobPresenter";
@@ -34,6 +36,7 @@ import {
   submitJob,
 } from "../application/use-cases/jobUseCases";
 import { finishOnboarding } from "../application/use-cases/onboardingUseCases";
+import { startLogin } from "../application/use-cases/authUseCases";
 
 // Construct authentication session with environment configuration
 export const authSession = new KeycloakAuthClient(
@@ -104,4 +107,15 @@ export const onboardingController = new OnboardingController({
       input,
       progress,
     ),
+});
+
+export const dashboardController = new DashboardController({
+  listContexts: (userId) => candidateContextController.listContexts(userId),
+  getPrimaryContext: (contexts) =>
+    candidateContextController.getPrimaryContext(contexts),
+  listJobs: (userId) => jobController.listJobs(userId),
+});
+
+export const loginController = new LoginController({
+  startLogin: () => startLogin(authSession),
 });
