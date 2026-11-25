@@ -13,10 +13,11 @@ import { ProfileEditorPage } from "../../../../src/adapters/views/pages/ProfileE
 import { ProfilesPage } from "../../../../src/adapters/views/pages/ProfilesPage";
 import { OnboardingPage } from "../../../../src/adapters/views/pages/OnboardingPage";
 import { LoginPage } from "../../../../src/adapters/views/pages/LoginPage";
-import { AuthContainer } from "../../../../src/adapters/containers/AuthContainer";
+import { AuthContext } from "../../../../src/adapters/AuthContext";
 import type { User } from "../../../../src/domain/models/User";
 import {
   account,
+  makeAuthContextValue,
   makeControllers,
   makeSession,
   profile,
@@ -24,23 +25,19 @@ import {
 } from "../../../fixtures/application";
 
 function setup() {
-  const dependencies = makeControllers();
   const session = makeSession();
+  const dependencies = makeControllers(session);
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
   function show(page: ReactElement, path: string, signedOut = false) {
     return render(
       <QueryClientProvider client={queryClient}>
-        <AuthContainer.Provider
-          value={{
-            ...signedIn,
-            authenticated: !signedOut,
-            ready: true,
-            sessionVersion: 1,
-            login: session.login,
-            logout: session.logout,
-          }}
+        <AuthContext.Provider
+          value={makeAuthContextValue(
+            { ...signedIn, authenticated: !signedOut },
+            { actions: { logout: session.logout } },
+          )}
         >
           <MemoryRouter
             initialEntries={[path]}
@@ -64,7 +61,7 @@ function setup() {
               <Route path="/dashboard" element={<p>Dashboard destination</p>} />
             </Routes>
           </MemoryRouter>
-        </AuthContainer.Provider>
+        </AuthContext.Provider>
       </QueryClientProvider>,
     );
   }
@@ -297,15 +294,11 @@ describe("onboarding workflow from the page", () => {
       controller = onboardingController,
     ) => (
       <QueryClientProvider client={queryClient}>
-        <AuthContainer.Provider
-          value={{
-            ...signedIn,
-            userId,
-            ready: true,
-            sessionVersion: 1,
-            login: vi.fn(),
-            logout: vi.fn(),
-          }}
+        <AuthContext.Provider
+          value={makeAuthContextValue(
+            { ...signedIn, userId },
+            { actions: { logout: vi.fn() } },
+          )}
         >
           <MemoryRouter initialEntries={["/onboarding"]}>
             <Routes>
@@ -321,7 +314,7 @@ describe("onboarding workflow from the page", () => {
               <Route path="/dashboard" element={<p>Dashboard destination</p>} />
             </Routes>
           </MemoryRouter>
-        </AuthContainer.Provider>
+        </AuthContext.Provider>
       </QueryClientProvider>
     );
     const { rerender } = render(pageFor("user-id"));
@@ -408,15 +401,11 @@ describe("onboarding workflow from the page", () => {
     repositories.users.completeOnboarding.mockReturnValueOnce(firstCompletion);
     const pageFor = (userId: string) => (
       <QueryClientProvider client={queryClient}>
-        <AuthContainer.Provider
-          value={{
-            ...signedIn,
-            userId,
-            ready: true,
-            sessionVersion: 1,
-            login: vi.fn(),
-            logout: vi.fn(),
-          }}
+        <AuthContext.Provider
+          value={makeAuthContextValue(
+            { ...signedIn, userId },
+            { actions: { logout: vi.fn() } },
+          )}
         >
           <MemoryRouter initialEntries={["/onboarding"]}>
             <Routes>
@@ -431,7 +420,7 @@ describe("onboarding workflow from the page", () => {
               />
             </Routes>
           </MemoryRouter>
-        </AuthContainer.Provider>
+        </AuthContext.Provider>
       </QueryClientProvider>
     );
     const { rerender } = render(pageFor("first-user"));
@@ -642,12 +631,12 @@ describe("profile listing and sign-in actions", () => {
   });
 
   it("shows a rejected login and allows another attempt", async () => {
-    const { show, session } = setup();
+    const { show, session, loginController } = setup();
     session.login = vi
       .fn()
       .mockRejectedValueOnce(new Error("Login unavailable"))
       .mockResolvedValue(undefined);
-    show(<LoginPage />, "/login", true);
+    show(<LoginPage loginController={loginController} />, "/login", true);
     fireEvent.click(
       screen.getByRole("button", { name: /Continue with Keycloak/ }),
     );

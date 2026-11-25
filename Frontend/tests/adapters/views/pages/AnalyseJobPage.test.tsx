@@ -9,7 +9,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { AnalyseJobPage } from "../../../../src/adapters/views/pages/AnalyseJobPage";
-import { AuthContainerProvider } from "../../../../src/infrastructure/providers/AuthContainerProvider";
+import { AuthSessionProvider } from "../../../../src/infrastructure/providers/AuthSessionProvider";
 import {
   makeControllers,
   makeSession,
@@ -35,7 +35,7 @@ function renderAnalyse(
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <AuthContainerProvider session={session}>
+      <AuthSessionProvider session={session}>
         <MemoryRouter
           initialEntries={[path]}
           future={{
@@ -57,7 +57,7 @@ function renderAnalyse(
             <Route path="/jobs/:jobId" element={<h1>Submission created</h1>} />
           </Routes>
         </MemoryRouter>
-      </AuthContainerProvider>
+      </AuthSessionProvider>
     </QueryClientProvider>,
   );
   return repositories;

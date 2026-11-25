@@ -1,4 +1,6 @@
 import { OnboardingController } from "../../src/adapters/controllers/OnboardingController";
+import { DashboardController } from "../../src/adapters/controllers/DashboardController";
+import { LoginController } from "../../src/adapters/controllers/LoginController";
 import { CandidateContextPresenter } from "../../src/adapters/presenters/CandidateContextPresenter";
 import { CandidateContextController } from "../../src/adapters/controllers/CandidateContextController";
 import { JobPresenter } from "../../src/adapters/presenters/JobPresenter";
@@ -27,10 +29,12 @@ import {
   submitJob,
 } from "../../src/application/use-cases/jobUseCases";
 import { finishOnboarding } from "../../src/application/use-cases/onboardingUseCases";
+import { startLogin } from "../../src/application/use-cases/authUseCases";
 import type {
   AuthClientContract,
   AuthSessionContract,
 } from "../../src/application/contracts/clients/AuthClientContract";
+import type { AuthContextValue } from "../../src/adapters/AuthContext";
 
 import type { JobSubmission, JobAnalysis } from "../../src/domain/models/Job";
 import type { User } from "../../src/domain/models/User";
@@ -86,6 +90,19 @@ export const signedIn: AuthSessionContract = {
   name: "Candidate",
   error: null,
 };
+export function makeAuthContextValue(
+  session: AuthSessionContract = signedIn,
+  overrides: Partial<AuthContextValue> = {},
+): AuthContextValue {
+  return {
+    session,
+    lifecycle: { ready: true, sessionVersion: 1, ...overrides.lifecycle },
+    actions: {
+      logout: vi.fn().mockResolvedValue(undefined),
+      ...overrides.actions,
+    },
+  };
+}
 export function makeSession(
   snapshot: AuthSessionContract = signedIn,
 ): AuthClientContract {
@@ -97,7 +114,9 @@ export function makeSession(
     getAccessToken: vi.fn().mockResolvedValue(undefined),
   };
 }
-export function makeControllers() {
+export function makeControllers(
+  authSession: AuthClientContract = makeSession(),
+) {
   const repositories = {
     jobs: {
       list: vi.fn().mockResolvedValue([job]),
@@ -168,8 +187,19 @@ export function makeControllers() {
         progress,
       ),
   });
+  const dashboardController = new DashboardController({
+    listContexts: (userId) => candidateContextController.listContexts(userId),
+    getPrimaryContext: (contexts) =>
+      candidateContextController.getPrimaryContext(contexts),
+    listJobs: (userId) => jobController.listJobs(userId),
+  });
+  const loginController = new LoginController({
+    startLogin: () => startLogin(authSession),
+  });
   return {
     onboardingController,
+    loginController,
+    dashboardController,
     candidateContextController,
     accountController,
     jobController,

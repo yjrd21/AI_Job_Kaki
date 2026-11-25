@@ -3,37 +3,28 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { JobHistoryPage } from "../../../../src/adapters/views/pages/JobHistoryPage";
-import { AuthContainer } from "../../../../src/adapters/containers/AuthContainer";
+import { AuthContext } from "../../../../src/adapters/AuthContext";
 import {
   job,
   makeControllers,
-  makeSession,
+  makeAuthContextValue,
   signedIn,
 } from "../../../fixtures/application";
 
 function showHistory() {
   const { jobController, repositories } = makeControllers();
-  const session = makeSession();
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
   render(
     <QueryClientProvider client={client}>
-      <AuthContainer.Provider
-        value={{
-          ...signedIn,
-          ready: true,
-          sessionVersion: 1,
-          login: session.login,
-          logout: session.logout,
-        }}
-      >
+      <AuthContext.Provider value={makeAuthContextValue(signedIn)}>
         <MemoryRouter
           future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
         >
           <JobHistoryPage jobController={jobController} />
         </MemoryRouter>
-      </AuthContainer.Provider>
+      </AuthContext.Provider>
     </QueryClientProvider>,
   );
   return repositories;

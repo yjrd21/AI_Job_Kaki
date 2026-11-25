@@ -1,59 +1,32 @@
-import {
-  act,
-  render,
-  renderHook,
-  screen,
-  waitFor,
-} from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { DashboardPage } from "../../../../src/adapters/views/pages/DashboardPage";
-import { AuthContainer } from "../../../../src/adapters/containers/AuthContainer";
-import {
-  useContexts,
-  usePrimaryContext,
-} from "../../../../src/adapters/hooks/useContexts";
+import { AuthContext } from "../../../../src/adapters/AuthContext";
 import {
   makeControllers,
-  makeSession,
+  makeAuthContextValue,
+  job,
   profile,
   signedIn,
 } from "../../../fixtures/application";
 
 function setup() {
   const dependencies = makeControllers();
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, staleTime: Infinity, gcTime: 0 },
-    },
-  });
-  const session = makeSession();
   function wrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>
-        <AuthContainer.Provider
-          value={{
-            ...signedIn,
-            ready: true,
-            sessionVersion: 1,
-            login: session.login,
-            logout: session.logout,
-          }}
-        >
-          <MemoryRouter>{children}</MemoryRouter>
-        </AuthContainer.Provider>
-      </QueryClientProvider>
+      <AuthContext.Provider value={makeAuthContextValue(signedIn)}>
+        <MemoryRouter>{children}</MemoryRouter>
+      </AuthContext.Provider>
     );
   }
-  return { ...dependencies, queryClient, wrapper };
+  return { ...dependencies, wrapper };
 }
 
-describe("dashboard primary context through controller and presenter", () => {
+describe("dashboard through its controller and presenter", () => {
   it("renders the first context with presenter-prepared labels", async () => {
-    const { wrapper, repositories, jobController, candidateContextController } =
-      setup();
+    const { wrapper, repositories, dashboardController } = setup();
     repositories.contexts.list.mockResolvedValue([
       profile,
       {
@@ -63,13 +36,9 @@ describe("dashboard primary context through controller and presenter", () => {
         updatedAt: "2027-01-01",
       },
     ]);
-    render(
-      <DashboardPage
-        jobController={jobController}
-        candidateContextController={candidateContextController}
-      />,
-      { wrapper },
-    );
+    render(<DashboardPage dashboardController={dashboardController} />, {
+      wrapper,
+    });
     expect(
       await screen.findByRole("heading", { name: "Engineer" }),
     ).toBeInTheDocument();
@@ -80,16 +49,11 @@ describe("dashboard primary context through controller and presenter", () => {
   });
 
   it("renders presenter-prepared empty output", async () => {
-    const { wrapper, repositories, jobController, candidateContextController } =
-      setup();
+    const { wrapper, repositories, dashboardController } = setup();
     repositories.contexts.list.mockResolvedValue([]);
-    render(
-      <DashboardPage
-        jobController={jobController}
-        candidateContextController={candidateContextController}
-      />,
-      { wrapper },
-    );
+    render(<DashboardPage dashboardController={dashboardController} />, {
+      wrapper,
+    });
     expect(
       await screen.findByText("No candidate profiles yet."),
     ).toBeInTheDocument();
@@ -99,46 +63,57 @@ describe("dashboard primary context through controller and presenter", () => {
   });
 
   it("shows a request failure instead of presenting an empty list", async () => {
-    const { wrapper, repositories, jobController, candidateContextController } =
-      setup();
+    const { wrapper, repositories, dashboardController } = setup();
     repositories.contexts.list.mockRejectedValue(
       new Error("Contexts unavailable"),
     );
-    render(
-      <DashboardPage
-        jobController={jobController}
-        candidateContextController={candidateContextController}
-      />,
-      { wrapper },
-    );
+    render(<DashboardPage dashboardController={dashboardController} />, {
+      wrapper,
+    });
     expect(await screen.findByText("Contexts unavailable")).toBeInTheDocument();
     expect(
       screen.queryByText("No candidate profiles yet."),
     ).not.toBeInTheDocument();
   });
 
-  it("shares the raw list cache and updates primary output when that cache changes", async () => {
-    const { wrapper, repositories, queryClient, candidateContextController } =
-      setup();
-    const hook = renderHook(
-      () => ({
-        list: useContexts(candidateContextController),
-        primary: usePrimaryContext(candidateContextController),
-      }),
-      { wrapper },
-    );
-    await waitFor(() =>
-      expect(hook.result.current.primary.isSuccess).toBe(true),
-    );
-    expect(repositories.contexts.list).toHaveBeenCalledTimes(1);
-    expect(hook.result.current.list.data).toEqual([profile]);
-    act(() => {
-      queryClient.setQueryData(["contexts", "user-id"], []);
+  it("retries a failed primary-context load through the controller", async () => {
+    const { wrapper, repositories, dashboardController } = setup();
+    repositories.contexts.list
+      .mockRejectedValueOnce(new Error("Contexts unavailable"))
+      .mockResolvedValueOnce([profile]);
+    render(<DashboardPage dashboardController={dashboardController} />, {
+      wrapper,
     });
-    await waitFor(() =>
-      expect(hook.result.current.primary.data?.state).toBe("empty"),
-    );
-    expect(hook.result.current.list.data).toEqual([]);
-    expect(repositories.contexts.list).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText("Contexts unavailable")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(
+      await screen.findByRole("heading", { name: "Engineer" }),
+    ).toBeInTheDocument();
+  });
+
+  it("uses presenter-prepared details for the newest recent analysis", async () => {
+    const { wrapper, repositories, dashboardController } = setup();
+    repositories.jobs.list.mockResolvedValue([
+      {
+        ...job,
+        id: "older-job",
+        createdAt: "2026-10-16T07:13:08Z",
+      },
+      {
+        ...job,
+        id: "newest-job",
+        submissionType: "URL",
+        createdAt: "2026-10-17T07:13:08Z",
+      },
+    ]);
+    render(<DashboardPage dashboardController={dashboardController} />, {
+      wrapper,
+    });
+    expect(
+      await screen.findByRole("heading", { name: "Submitted job URL" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "View analysis →" }),
+    ).toHaveAttribute("href", "/jobs/newest-job");
   });
 });

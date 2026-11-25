@@ -2,7 +2,7 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AuthContainerProvider } from "../../../../src/infrastructure/providers/AuthContainerProvider";
+import { AuthSessionProvider } from "../../../../src/infrastructure/providers/AuthSessionProvider";
 import {
   useJob,
   useDeleteJob,
@@ -42,9 +42,7 @@ function setup() {
   function wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        <AuthContainerProvider session={session}>
-          {children}
-        </AuthContainerProvider>
+        <AuthSessionProvider session={session}>{children}</AuthSessionProvider>
       </QueryClientProvider>
     );
   }

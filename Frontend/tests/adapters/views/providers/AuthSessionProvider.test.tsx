@@ -1,29 +1,25 @@
-import { useContext } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthContainer } from "../../../../src/adapters/containers/AuthContainer";
+import { useAuthContext } from "../../../../src/adapters/AuthContext";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { AuthContainerProvider } from "../../../../src/infrastructure/providers/AuthContainerProvider";
+import { AuthSessionProvider } from "../../../../src/infrastructure/providers/AuthSessionProvider";
 import type { AuthSessionContract } from "../../../../src/application/contracts/clients/AuthClientContract";
 import { makeSession, signedIn } from "../../../fixtures/application";
 
 function Status() {
-  const auth = useContext(AuthContainer);
-
-  if (!auth) {
-    throw new Error("AuthContainer provider missing");
-  }
+  const auth = useAuthContext();
   return (
     <div>
-      {!auth.ready ? "Connecting" : auth.error || auth.userId || "Signed out"}
+      {!auth.lifecycle.ready
+        ? "Connecting"
+        : auth.session.error || auth.session.userId || "Signed out"}
     </div>
   );
 }
 
 function Logout() {
-  const auth = useContext(AuthContainer);
-  if (!auth) throw new Error("AuthContainer provider missing");
-  return <button onClick={() => void auth.logout()}>Logout</button>;
+  const auth = useAuthContext();
+  return <button onClick={() => void auth.actions.logout()}>Logout</button>;
 }
 
 function withQueryClient(
@@ -33,7 +29,7 @@ function withQueryClient(
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
-describe("AuthContainerProvider", () => {
+describe("AuthSessionProvider", () => {
   it("restores a session, observes logout and removes its subscription on unmount", async () => {
     const session = makeSession();
     let publish: ((value: AuthSessionContract) => void) | undefined;
@@ -44,9 +40,9 @@ describe("AuthContainerProvider", () => {
     });
     const view = render(
       withQueryClient(
-        <AuthContainerProvider session={session}>
+        <AuthSessionProvider session={session}>
           <Status />
-        </AuthContainerProvider>,
+        </AuthSessionProvider>,
       ),
     );
     expect(screen.getByText("Connecting")).toBeInTheDocument();
@@ -71,17 +67,17 @@ describe("AuthContainerProvider", () => {
     const queryClient = new QueryClient();
     const view = render(
       withQueryClient(
-        <AuthContainerProvider session={previous}>
+        <AuthSessionProvider session={previous}>
           <Status />
-        </AuthContainerProvider>,
+        </AuthSessionProvider>,
         queryClient,
       ),
     );
     view.rerender(
       withQueryClient(
-        <AuthContainerProvider session={next}>
+        <AuthSessionProvider session={next}>
           <Status />
-        </AuthContainerProvider>,
+        </AuthSessionProvider>,
         queryClient,
       ),
     );
@@ -97,9 +93,9 @@ describe("AuthContainerProvider", () => {
     );
     render(
       withQueryClient(
-        <AuthContainerProvider session={session}>
+        <AuthSessionProvider session={session}>
           <Status />
-        </AuthContainerProvider>,
+        </AuthSessionProvider>,
       ),
     );
     await waitFor(() =>
@@ -119,9 +115,9 @@ describe("AuthContainerProvider", () => {
     const queryClient = new QueryClient();
     render(
       withQueryClient(
-        <AuthContainerProvider session={session}>
+        <AuthSessionProvider session={session}>
           <Status />
-        </AuthContainerProvider>,
+        </AuthSessionProvider>,
         queryClient,
       ),
     );
@@ -142,10 +138,10 @@ describe("AuthContainerProvider", () => {
     const queryClient = new QueryClient();
     render(
       withQueryClient(
-        <AuthContainerProvider session={session}>
+        <AuthSessionProvider session={session}>
           <Status />
           <Logout />
-        </AuthContainerProvider>,
+        </AuthSessionProvider>,
         queryClient,
       ),
     );
@@ -173,10 +169,10 @@ describe("AuthContainerProvider", () => {
     const queryClient = new QueryClient();
     render(
       withQueryClient(
-        <AuthContainerProvider session={session}>
+        <AuthSessionProvider session={session}>
           <Status />
           <Logout />
-        </AuthContainerProvider>,
+        </AuthSessionProvider>,
         queryClient,
       ),
     );

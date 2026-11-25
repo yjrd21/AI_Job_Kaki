@@ -9,7 +9,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 import { App } from "../../../../src/app/App";
 import { createAppRouter } from "../../../../src/adapters/views/routes";
-import { AuthContainerProvider } from "../../../../src/infrastructure/providers/AuthContainerProvider";
+import { AuthSessionProvider } from "../../../../src/infrastructure/providers/AuthSessionProvider";
 import {
   makeControllers,
   makeSession,
@@ -23,23 +23,27 @@ async function showRoute(
   sessionState: AuthSessionContract = signedIn,
   onboarded = true,
 ) {
+  const session = makeSession(sessionState);
   const {
     accountController,
+    dashboardController,
+    loginController,
     jobController,
     candidateContextController,
     onboardingController,
     repositories,
-  } = makeControllers();
+  } = makeControllers(session);
   repositories.users.get.mockResolvedValue({
     ...account,
     onboardingCompleted: onboarded,
   });
-  const session = makeSession(sessionState);
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
   const router = createAppRouter({
     accountController,
+    dashboardController,
+    loginController,
     jobController,
     candidateContextController,
     onboardingController,
@@ -49,9 +53,9 @@ async function showRoute(
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <AuthContainerProvider session={session}>
+      <AuthSessionProvider session={session}>
         <App router={router} />
-      </AuthContainerProvider>
+      </AuthSessionProvider>
     </QueryClientProvider>,
   );
   return { session, repositories, router };
@@ -160,8 +164,8 @@ describe("application routes after moving the frontend", () => {
   );
 
   it("discards the previous onboarding view when the signed-in user changes", async () => {
-    const controllers = makeControllers();
     const session = makeSession();
+    const controllers = makeControllers(session);
     let publish!: (value: AuthSessionContract) => void;
     vi.mocked(session.subscribe).mockImplementation((listener) => {
       publish = listener;
@@ -184,9 +188,9 @@ describe("application routes after moving the frontend", () => {
     });
     render(
       <QueryClientProvider client={queryClient}>
-        <AuthContainerProvider session={session}>
+        <AuthSessionProvider session={session}>
           <App router={router} />
-        </AuthContainerProvider>
+        </AuthSessionProvider>
       </QueryClientProvider>,
     );
     fireEvent.change(await screen.findByLabelText("Target roles"), {
