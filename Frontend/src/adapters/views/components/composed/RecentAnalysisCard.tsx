@@ -1,47 +1,39 @@
 import { Link } from "react-router-dom";
-import type { UseQueryResult } from "@tanstack/react-query";
 import { Loading, ErrorNotice } from "./Feedback";
-import { formatDate } from "../../utils/dateUtils";
-import type { JobSubmission } from "../../../../domain/models/Job";
 import { StatusBadge } from "./JobStatusBadge";
-
-// Limit the card input to the query state needed for its loading and content views.
-type JobsQuery = Pick<
-  UseQueryResult<JobSubmission[]>,
-  "isPending" | "isError" | "error" | "data" | "refetch"
->;
-
-// The backend does not guarantee ordering, so pick the newest without mutating the cached array.
-function latestJob(jobs: JobSubmission[]) {
-  return jobs.reduce((latest, job) =>
-    new Date(job.createdAt).getTime() > new Date(latest.createdAt).getTime()
-      ? job
-      : latest,
-  );
-}
+import type { RecentAnalysisView } from "../../../presenters/DashboardPresenter";
 
 // Renders the dashboard's Recent Analysis card for exactly one of: loading, error, empty or success.
-export function RecentAnalysisCard({ jobs }: { jobs: JobsQuery }) {
+export function RecentAnalysisCard({
+  view,
+  onRetry,
+}: {
+  view: RecentAnalysisView;
+  onRetry: () => void;
+}) {
   return (
     <div className="card p-7">
       <p className="eyebrow mb-5">RECENT ANALYSIS</p>
-      <Content jobs={jobs} />
+      <Content view={view} onRetry={onRetry} />
     </div>
   );
 }
 
-// Choose the loading, error, empty, or latest-submission content for the card.
-function Content({ jobs }: { jobs: JobsQuery }) {
-  if (jobs.isPending) return <Loading />;
+// Render the state and display data prepared by the dashboard presenter.
+function Content({
+  view,
+  onRetry,
+}: {
+  view: RecentAnalysisView;
+  onRetry: () => void;
+}) {
+  if (view.state === "loading") return <Loading />;
 
-  if (jobs.isError) {
-    return <ErrorNotice error={jobs.error} retry={() => void jobs.refetch()} />;
+  if (view.state === "error") {
+    return <ErrorNotice error={view.error} retry={onRetry} />;
   }
 
-  // Use an empty list when no submission data has been returned.
-  const list = jobs.data ?? [];
-
-  if (!list.length) {
+  if (view.state === "empty") {
     return (
       <>
         <p className="muted text-sm mb-4">
@@ -54,21 +46,14 @@ function Content({ jobs }: { jobs: JobsQuery }) {
     );
   }
 
-  // Select the newest submission after confirming the list is nonempty.
-  const job = latestJob(list);
-
   return (
     <>
       <div className="flex items-center justify-between gap-3 mb-3">
-        <h2 className="font-semibold">
-          {job.submissionType === "TEXT"
-            ? "Submitted job description"
-            : "Submitted job URL"}
-        </h2>
-        <StatusBadge status={job.status} />
+        <h2 className="font-semibold">{view.heading}</h2>
+        <StatusBadge status={view.status} />
       </div>
-      <p className="text-xs muted mb-4">{formatDate(job.createdAt)}</p>
-      <Link to={`/jobs/${job.id}`} className="link-text text-sm">
+      <p className="text-xs muted mb-4">{view.submittedAt}</p>
+      <Link to={view.href} className="link-text text-sm">
         View analysis →
       </Link>
     </>
