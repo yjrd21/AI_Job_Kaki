@@ -5,7 +5,11 @@ import { useAuthContext } from "../../AuthContext";
 import { Link } from "react-router-dom";
 import { ArrowLeft, FileText, Info, Save } from "lucide-react";
 import { Button } from "../components/primitives/Button";
-import { ErrorNotice, Loading } from "../components/composed/Feedback";
+import { Card } from "../components/primitives/Card";
+import { FormField } from "../components/primitives/FormField";
+import { ErrorState } from "../components/composed/ErrorState";
+import { LoadingState } from "../components/composed/LoadingState";
+import { PageHeader } from "../components/composed/PageHeader";
 import type { ProfileEditorController } from "../../controllers/ProfileEditorController";
 import type { CandidateContextForm } from "../../../application/contracts/presenters/CandidateContextPresenterContract";
 import { ProfileEditorPresenter } from "../../presenters/ProfileEditorPresenter";
@@ -85,84 +89,104 @@ export function ProfileEditorPage({
       >
         <ArrowLeft size={16} /> Candidate profiles
       </Link>
-      <p className="eyebrow mb-4">CAREER CONTEXT</p>
-      <h1 className="display-title mb-4">
-        {editing ? "Refine your profile." : "Create a candidate profile."}
-      </h1>
-      <p className="muted mb-10 max-w-2xl leading-relaxed">
-        Your profile describes where you want to go, what matters to you, and
-        the signals you'd rather avoid.
-      </p>
+      <PageHeader
+        eyebrow="CAREER CONTEXT"
+        title={editing ? "Refine your profile." : "Create a candidate profile."}
+        description="Your profile describes where you want to go, what matters to you, and the signals you'd rather avoid."
+        className="max-w-2xl"
+      />
       {editing &&
       (view.profile.status === "idle" || view.profile.status === "loading") ? (
-        <Loading />
+        <LoadingState />
       ) : editing && view.profile.status === "error" ? (
-        <ErrorNotice error={view.profile.error} retry={loadProfile} />
+        <ErrorState error={view.profile.error} retry={loadProfile} />
       ) : (
         <form onSubmit={(e) => void onSubmit(e)} className="space-y-6">
-          <div className="card p-6 sm:p-8">
+          <Card className="p-6 sm:p-8">
             <p className="eyebrow mb-5">01 — TARGET ROLES</p>
-            <label htmlFor="roles" className="field-label">
-              Career directions <span className="text-rust">*</span>
-            </label>
-            <textarea
+            <FormField
               id="roles"
-              rows={4}
-              className="field"
-              placeholder={"Product Manager\nBusiness Analyst"}
-              {...form.register("roles")}
-            />
-            <p className="text-xs muted mt-2">Enter one role per line.</p>
-            {form.formState.errors.roles && (
-              <p role="alert" className="text-red-700 text-sm mt-2">
-                {form.formState.errors.roles.message}
-              </p>
-            )}
-          </div>
-          <div className="card p-6 sm:p-8">
+              label="Career directions"
+              required
+              hint="Enter one role per line."
+              error={form.formState.errors.roles?.message}
+            >
+              {({ id, describedBy, invalid }) => (
+                <textarea
+                  id={id}
+                  rows={4}
+                  className="field"
+                  placeholder={"Product Manager\nBusiness Analyst"}
+                  aria-describedby={describedBy}
+                  aria-invalid={invalid}
+                  {...form.register("roles")}
+                />
+              )}
+            </FormField>
+          </Card>
+          <Card className="p-6 sm:p-8">
             <p className="eyebrow mb-5">02 — YOUR PREFERENCES</p>
-            <label htmlFor="preferences" className="field-label">
-              What you're looking for
-            </label>
-            <textarea
+            <FormField
               id="preferences"
-              className="field"
-              rows={5}
-              placeholder={
-                "Cross-functional collaboration\nFlexible working hours\nOpportunities to grow"
-              }
-              {...form.register("preferences")}
-            />
-            <p className="text-xs muted mt-2">One preference per line.</p>
-          </div>
-          <div className="card p-6 sm:p-8">
+              label="What you're looking for"
+              hint="One preference per line."
+            >
+              {({ id, describedBy, invalid }) => (
+                <textarea
+                  id={id}
+                  className="field"
+                  rows={5}
+                  placeholder={
+                    "Cross-functional collaboration\nFlexible working hours\nOpportunities to grow"
+                  }
+                  aria-describedby={describedBy}
+                  aria-invalid={invalid}
+                  {...form.register("preferences")}
+                />
+              )}
+            </FormField>
+          </Card>
+          <Card className="p-6 sm:p-8">
             <p className="eyebrow mb-5">03 — DEAL-BREAKERS</p>
-            <label htmlFor="redFlags" className="field-label">
-              What would make you think twice?
-            </label>
-            <textarea
+            <FormField
               id="redFlags"
-              className="field"
-              rows={4}
-              placeholder={"Unpaid trial work\nUnclear responsibilities"}
-              {...form.register("redFlags")}
-            />
-            <p className="text-xs muted mt-2">One red flag per line.</p>
-          </div>
-          <div className="card p-6 sm:p-8">
+              label="What would make you think twice?"
+              hint="One red flag per line."
+            >
+              {({ id, describedBy, invalid }) => (
+                <textarea
+                  id={id}
+                  className="field"
+                  rows={4}
+                  placeholder={"Unpaid trial work\nUnclear responsibilities"}
+                  aria-describedby={describedBy}
+                  aria-invalid={invalid}
+                  {...form.register("redFlags")}
+                />
+              )}
+            </FormField>
+          </Card>
+          <Card className="p-6 sm:p-8">
             <p className="eyebrow mb-5">04 — YOUR CV</p>
-            <label htmlFor="cv" className="field-label">
-              Upload a CV (required for job analysis)
-            </label>
             <div className="border border-dashed border-[#c9ccc0] bg-[#fcfcfa] rounded-lg px-6 py-8 text-center">
               <FileText className="text-forest mx-auto mb-3" size={27} />
-              <input
+              <FormField
                 id="cv"
-                type="file"
-                accept=".pdf,.doc,.docx"
-                onChange={(e) => onFileChange(e.target.files?.[0] || null)}
-                className="text-sm max-w-full"
-              />
+                label="Upload a CV (required for job analysis)"
+                error={view.fileError ?? undefined}
+              >
+                {({ id, describedBy, invalid }) => (
+                  <input
+                    id={id}
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={(e) => onFileChange(e.target.files?.[0] || null)}
+                    className="text-sm max-w-full"
+                    aria-describedby={describedBy}
+                    aria-invalid={invalid}
+                  />
+                )}
+              </FormField>
               <p className="text-xs muted mt-3">
                 PDF, DOC, or DOCX, up to 5 MiB. Your CV is sent to the AI with
                 each job analysis to assess your qualifications.
@@ -182,14 +206,9 @@ export function ProfileEditorPage({
               <Info size={15} className="shrink-0" />
               The current API does not support downloading an existing CV.
             </p>
-          </div>
-          {view.fileError && (
-            <p className="text-red-700 text-sm" role="alert">
-              {view.fileError}
-            </p>
-          )}
+          </Card>
           {view.save.status === "error" && (
-            <ErrorNotice error={view.save.error} />
+            <ErrorState error={view.save.error} />
           )}
           <div className="flex justify-end gap-3">
             <Link to="/profiles" className="btn btn-outline">

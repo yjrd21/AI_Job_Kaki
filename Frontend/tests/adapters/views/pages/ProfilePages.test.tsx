@@ -638,22 +638,19 @@ describe("profile listing and sign-in actions", () => {
       "href",
       "/profiles/profile-id",
     );
-    const confirmation = vi.spyOn(window, "confirm").mockReturnValue(false);
-    try {
-      fireEvent.click(screen.getByRole("button", { name: "Delete profile" }));
-      expect(repositories.contexts.delete).not.toHaveBeenCalled();
-      repositories.contexts.delete.mockRejectedValueOnce(
-        new Error("Delete unavailable"),
-      );
-      confirmation.mockReturnValue(true);
-      fireEvent.click(screen.getByRole("button", { name: "Delete profile" }));
-      await screen.findByText("Delete unavailable");
-      repositories.contexts.list.mockResolvedValue([]);
-      fireEvent.click(screen.getByRole("button", { name: "Delete profile" }));
-      await screen.findByText("Start with your first profile");
-    } finally {
-      confirmation.mockRestore();
-    }
+    fireEvent.click(screen.getByRole("button", { name: "Delete profile" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(repositories.contexts.delete).not.toHaveBeenCalled();
+    repositories.contexts.delete.mockRejectedValueOnce(
+      new Error("Delete unavailable"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Delete profile" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await screen.findByText("Delete unavailable");
+    repositories.contexts.list.mockResolvedValue([]);
+    fireEvent.click(screen.getByRole("button", { name: "Delete profile" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await screen.findByText("Start with your first profile");
   });
 
   it("shows a rejected login and allows another attempt", async () => {

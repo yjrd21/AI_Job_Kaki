@@ -2,11 +2,11 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, FileText, Plus, Trash2 } from "lucide-react";
 import { useAuthContext } from "../../AuthContext";
-import {
-  Loading,
-  ErrorNotice,
-  EmptyState,
-} from "../components/composed/Feedback";
+import { LoadingState } from "../components/composed/LoadingState";
+import { ErrorState } from "../components/composed/ErrorState";
+import { EmptyState } from "../components/composed/EmptyState";
+import { ConfirmationDialog } from "../components/composed/ConfirmationDialog";
+import { PageHeader } from "../components/composed/PageHeader";
 import type { ProfileController } from "../../controllers/ProfileController";
 import { ProfilePresenter } from "../../presenters/ProfilePresenter";
 
@@ -18,6 +18,7 @@ export function ProfilePage({
 }) {
   const userId = useAuthContext().session.userId;
   const [presenter] = useState(() => new ProfilePresenter());
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const view = useSyncExternalStore(presenter.subscribe, presenter.getSnapshot);
   const loadProfiles = useCallback(
     () => void profileController.loadProfiles(userId, presenter),
@@ -31,34 +32,30 @@ export function ProfilePage({
   }, []);
 
   const onDelete = (id: string) => {
-    if (
-      window.confirm(
-        "Delete this candidate profile? Existing job submissions may still reference it.",
-      )
-    ) {
-      void profileController.deleteProfile(userId, id, presenter);
-    }
+    setDeleteTarget(id);
+  };
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    await profileController.deleteProfile(userId, deleteTarget, presenter);
+    setDeleteTarget(null);
   };
 
   return (
     <div>
-      <p className="eyebrow mb-4">YOUR CAREER DIRECTIONS</p>
-      <div className="flex flex-wrap justify-between items-end gap-5 mb-10">
-        <div>
-          <h1 className="display-title mb-3">Candidate profiles</h1>
-          <p className="muted max-w-xl leading-relaxed">
-            Different ambitions deserve different perspectives. Build a profile
-            for each direction you're exploring.
-          </p>
-        </div>
-        <Link className="btn btn-primary" to="/profiles/new">
-          <Plus size={17} /> Create a profile
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow="YOUR CAREER DIRECTIONS"
+        title="Candidate profiles"
+        description="Different ambitions deserve different perspectives. Build a profile for each direction you're exploring."
+        action={
+          <Link className="btn btn-primary" to="/profiles/new">
+            <Plus size={17} /> Create a profile
+          </Link>
+        }
+      />
       {view.profiles.status === "loading" ? (
-        <Loading />
+        <LoadingState />
       ) : view.profiles.status === "error" ? (
-        <ErrorNotice error={view.profiles.error} retry={loadProfiles} />
+        <ErrorState error={view.profiles.error} retry={loadProfiles} />
       ) : !view.profiles.data.length ? (
         <EmptyState
           title="Start with your first profile"
@@ -113,9 +110,18 @@ export function ProfilePage({
       )}
       {view.deleteError !== null && (
         <div className="mt-5">
-          <ErrorNotice error={view.deleteError} />
+          <ErrorState error={view.deleteError} />
         </div>
       )}
+      <ConfirmationDialog
+        open={deleteTarget !== null}
+        title="Delete this candidate profile?"
+        description="Existing job submissions may still reference this profile."
+        confirmLabel="Delete"
+        pending={view.deleting}
+        onConfirm={confirmDelete}
+        onClose={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

@@ -38,8 +38,14 @@ export function Modal({
     const dialog = ref.current;
 
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
+    if (open && !dialog.open) {
+      if (typeof dialog.showModal === "function") dialog.showModal();
+      else dialog.setAttribute("open", "");
+    }
+    if (!open && dialog.open) {
+      if (typeof dialog.close === "function") dialog.close();
+      else dialog.removeAttribute("open");
+    }
   }, [open]);
   if (typeof document === "undefined") return null;
   return createPortal(
@@ -48,10 +54,12 @@ export function Modal({
       className="ui-modal"
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
-      onClose={onClose}
+      onClose={() => {
+        if (open) onClose();
+      }}
       onCancel={(event) => {
         event.preventDefault();
-        onClose();
+        if (open) onClose();
       }}
     >
       <div className="ui-modal-header">

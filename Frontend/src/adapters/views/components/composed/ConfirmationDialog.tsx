@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "../primitives/Button";
 import { Modal } from "../primitives/Modal";
 
 // Describe the confirmation content, callbacks, and optional typed confirmation requirement.
-type Props = {
+type ConfirmationDialogProps = {
   open: boolean;
   title: string;
   description: string;
@@ -16,7 +16,7 @@ type Props = {
 };
 
 // Require confirmation before invoking the supplied action.
-export function ConfirmDialog({
+export function ConfirmationDialog({
   open,
   title,
   description,
@@ -26,12 +26,16 @@ export function ConfirmDialog({
   pending = false,
   onConfirm,
   onClose,
-}: Props) {
+}: ConfirmationDialogProps) {
   // Track the confirmation phrase entered by the user.
   const [typed, setTyped] = useState("");
 
   // Enable confirmation when no phrase is required or the entered phrase matches exactly.
   const valid = !confirmText || typed === confirmText;
+
+  useEffect(() => {
+    if (!open) setTyped("");
+  }, [open]);
 
   // Clear the confirmation phrase before notifying the caller that the dialog closed.
   const close = () => {

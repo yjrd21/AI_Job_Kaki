@@ -115,5 +115,6 @@ describe("dashboard through its controller and presenter", () => {
     expect(
       screen.getByRole("link", { name: "View analysis →" }),
     ).toHaveAttribute("href", "/jobs/newest-job");
+    expect(screen.getByText("PENDING")).toHaveClass("ui-badge--neutral");
   });
 });

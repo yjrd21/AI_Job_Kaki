@@ -2,14 +2,23 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Search, Trash2 } from "lucide-react";
 import { useAuthContext } from "../../AuthContext";
-import { StatusBadge } from "../components/composed/JobStatusBadge";
-import {
-  EmptyState,
-  ErrorNotice,
-  Loading,
-} from "../components/composed/Feedback";
+import { ConfirmationDialog } from "../components/composed/ConfirmationDialog";
+import { PageHeader } from "../components/composed/PageHeader";
+import { Card } from "../components/primitives/Card";
+import { Badge, type BadgeTone } from "../components/primitives/Badge";
+import { EmptyState } from "../components/composed/EmptyState";
+import { ErrorState } from "../components/composed/ErrorState";
+import { LoadingState } from "../components/composed/LoadingState";
+import type { JobStatus } from "../../../domain/models/Job";
 import type { HistoryController } from "../../controllers/HistoryController";
 import { HistoryPresenter } from "../../presenters/HistoryPresenter";
+
+const statusToneByStatus: Record<JobStatus, BadgeTone> = {
+  PENDING: "neutral",
+  PROCESSING: "warning",
+  COMPLETED: "success",
+  FAILED: "danger",
+};
 
 // Display searchable job history with links and deletion actions.
 export function HistoryPage({
@@ -19,6 +28,7 @@ export function HistoryPage({
 }) {
   const userId = useAuthContext().session.userId;
   const [presenter] = useState(() => new HistoryPresenter());
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const view = useSyncExternalStore(presenter.subscribe, presenter.getSnapshot);
   const loadJobs = useCallback(
     () => void historyController.loadJobs(userId, presenter),
@@ -33,30 +43,27 @@ export function HistoryPage({
   }, []);
 
   const onDelete = (id: string) => {
-    if (
-      window.confirm(
-        "Delete this job submission? The analysis may remain stored by the AI service.",
-      )
-    ) {
-      void historyController.deleteJob(userId, id, presenter);
-    }
+    setDeleteTarget(id);
+  };
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    await historyController.deleteJob(userId, deleteTarget, presenter);
+    setDeleteTarget(null);
   };
 
   return (
     <div>
-      <p className="eyebrow mb-4">YOUR JOURNEY</p>
-      <div className="flex flex-wrap gap-6 justify-between items-end mb-10">
-        <div>
-          <h1 className="display-title mb-3">Job history</h1>
-          <p className="muted max-w-xl">
-            All the opportunities you've taken time to consider, in one place.
-          </p>
-        </div>
-        <Link to="/analyse" className="btn btn-primary">
-          New analysis <ArrowRight size={17} />
-        </Link>
-      </div>
-      <div className="card p-5 sm:p-8">
+      <PageHeader
+        eyebrow="YOUR JOURNEY"
+        title="Job history"
+        description="All the opportunities you've taken time to consider, in one place."
+        action={
+          <Link to="/analyse" className="btn btn-primary">
+            New analysis <ArrowRight size={17} />
+          </Link>
+        }
+      />
+      <Card className="p-5 sm:p-8">
         <label className="field-label" htmlFor="search">
           Search analyses
         </label>
@@ -71,9 +78,9 @@ export function HistoryPage({
           />
         </div>
         {view.jobs.status === "loading" ? (
-          <Loading />
+          <LoadingState />
         ) : view.jobs.status === "error" ? (
-          <ErrorNotice error={view.jobs.error} retry={loadJobs} />
+          <ErrorState error={view.jobs.error} retry={loadJobs} />
         ) : view.filteredJobs.length === 0 ? (
           <EmptyState
             title={
@@ -110,7 +117,9 @@ export function HistoryPage({
                   </div>
                 </Link>
                 <div className="flex items-center gap-3 justify-between sm:justify-end">
-                  <StatusBadge status={job.status} />
+                  <Badge tone={statusToneByStatus[job.status]}>
+                    {job.status.replaceAll("_", " ")}
+                  </Badge>
                   <button
                     title="Delete submission"
                     aria-label="Delete submission"
@@ -131,12 +140,21 @@ export function HistoryPage({
             ))}
           </div>
         )}
-      </div>
+      </Card>
       {view.deleteError !== null && (
         <div className="mt-4">
-          <ErrorNotice error={view.deleteError} />
+          <ErrorState error={view.deleteError} />
         </div>
       )}
+      <ConfirmationDialog
+        open={deleteTarget !== null}
+        title="Delete this job submission?"
+        description="The analysis may remain stored by the AI service."
+        confirmLabel="Delete"
+        pending={view.deleting}
+        onConfirm={confirmDelete}
+        onClose={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

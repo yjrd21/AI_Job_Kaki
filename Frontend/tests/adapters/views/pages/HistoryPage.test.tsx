@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { HistoryPage } from "../../../../src/adapters/views/pages/HistoryPage";
 import { AuthContext } from "../../../../src/adapters/AuthContext";
 import {
@@ -28,6 +28,7 @@ describe("job history interactions through the page controller", () => {
   it("filters loaded jobs by posting, status, and identifier without another request", async () => {
     const repositories = showHistory();
     await screen.findByRole("heading", { name: job.jobContext });
+    expect(screen.getByText("PENDING")).toHaveClass("ui-badge--neutral");
     for (const value of ["DESCRIPTION", "pending", "JOB-ID"]) {
       fireEvent.change(screen.getByLabelText("Search analyses"), {
         target: { value },
@@ -49,41 +50,28 @@ describe("job history interactions through the page controller", () => {
     expect(repositories.jobs.list).toHaveBeenCalledTimes(1);
   });
 
-  it("does not delete when confirmation is cancelled", async () => {
+  it("does not delete when the confirmation dialog is cancelled", async () => {
     const repositories = showHistory();
     await screen.findByRole("heading", { name: job.jobContext });
-    const confirmation = vi.spyOn(window, "confirm").mockReturnValue(false);
-    try {
-      fireEvent.click(
-        screen.getByRole("button", { name: "Delete submission" }),
-      );
-      expect(repositories.jobs.delete).not.toHaveBeenCalled();
-    } finally {
-      confirmation.mockRestore();
-    }
+    fireEvent.click(screen.getByRole("button", { name: "Delete submission" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(repositories.jobs.delete).not.toHaveBeenCalled();
   });
 
   it("displays deletion failures and reloads history after a successful retry", async () => {
     const repositories = showHistory();
     await screen.findByRole("heading", { name: job.jobContext });
-    const confirmation = vi.spyOn(window, "confirm").mockReturnValue(true);
-    try {
-      repositories.jobs.delete.mockRejectedValueOnce(
-        new Error("Deletion unavailable"),
-      );
-      fireEvent.click(
-        screen.getByRole("button", { name: "Delete submission" }),
-      );
-      await screen.findByText("Deletion unavailable");
-      repositories.jobs.list.mockResolvedValue([]);
-      fireEvent.click(
-        screen.getByRole("button", { name: "Delete submission" }),
-      );
-      await screen.findByText("Your history starts here");
-      expect(repositories.jobs.delete).toHaveBeenCalledTimes(2);
-      expect(repositories.jobs.list).toHaveBeenCalledTimes(2);
-    } finally {
-      confirmation.mockRestore();
-    }
+    repositories.jobs.delete.mockRejectedValueOnce(
+      new Error("Deletion unavailable"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Delete submission" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await screen.findByText("Deletion unavailable");
+    repositories.jobs.list.mockResolvedValue([]);
+    fireEvent.click(screen.getByRole("button", { name: "Delete submission" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await screen.findByText("Your history starts here");
+    expect(repositories.jobs.delete).toHaveBeenCalledTimes(2);
+    expect(repositories.jobs.list).toHaveBeenCalledTimes(2);
   });
 });

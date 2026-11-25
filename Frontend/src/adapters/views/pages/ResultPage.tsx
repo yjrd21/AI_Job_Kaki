@@ -10,11 +10,32 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useAuthContext } from "../../AuthContext";
-import { Loading, ErrorNotice } from "../components/composed/Feedback";
-import { StatusBadge } from "../components/composed/JobStatusBadge";
+import { LoadingState } from "../components/composed/LoadingState";
+import { ErrorState } from "../components/composed/ErrorState";
+import { ConfirmationDialog } from "../components/composed/ConfirmationDialog";
+import { PageHeader } from "../components/composed/PageHeader";
 import { Button } from "../components/primitives/Button";
+import { Badge, type BadgeTone } from "../components/primitives/Badge";
+import type {
+  JobStatus,
+  RequirementMatchStatus,
+} from "../../../domain/models/Job";
 import type { ResultController } from "../../controllers/ResultController";
 import { ResultPresenter } from "../../presenters/ResultPresenter";
+
+const statusToneByStatus: Record<
+  JobStatus | RequirementMatchStatus,
+  BadgeTone
+> = {
+  PENDING: "neutral",
+  PROCESSING: "warning",
+  COMPLETED: "success",
+  FAILED: "danger",
+  MET: "success",
+  PARTIALLY_MET: "warning",
+  NOT_MET: "danger",
+  UNKNOWN: "neutral",
+};
 
 // Display submission progress, recovery guidance, or the completed analysis report.
 export function ResultPage({
@@ -26,6 +47,7 @@ export function ResultPage({
   const userId = useAuthContext().session.userId;
   const navigate = useNavigate();
   const [presenter] = useState(() => new ResultPresenter());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const view = useSyncExternalStore(presenter.subscribe, presenter.getSnapshot);
   const job = view.job;
   const result = view.result;
@@ -46,20 +68,21 @@ export function ResultPage({
       : null;
   const heading =
     result.data?.presentation.heading || job.data?.presentation.resultHeading;
-  const onDelete = () => {
-    if (job.data && window.confirm("Delete this job submission?")) {
-      void resultController
-        .deleteJob(userId, job.data.id, presenter)
-        .then((deleted) => {
-          if (deleted) navigate("/history");
-        });
-    }
+  const confirmDelete = async () => {
+    if (!job.data) return;
+    const deleted = await resultController.deleteJob(
+      userId,
+      job.data.id,
+      presenter,
+    );
+    setDeleteDialogOpen(false);
+    if (deleted) navigate("/history");
   };
 
-  if (job.isLoading) return <Loading label="Retrieving your job…" />;
+  if (job.isLoading) return <LoadingState label="Retrieving your job…" />;
   if (job.isError)
     return (
-      <ErrorNotice
+      <ErrorState
         error={job.error}
         retry={() => void resultController.refreshJob(userId, jobId, presenter)}
       />
@@ -80,22 +103,22 @@ export function ResultPage({
       >
         <ArrowLeft size={16} /> Back to job history
       </Link>
-      <p className="eyebrow mb-4">JOB ANALYSIS</p>
-      <div className="flex flex-col sm:flex-row gap-5 justify-between sm:items-start mb-10">
-        <div>
-          <h1 className="display-title mb-3">{heading}</h1>
-          <p className="text-sm muted">
-            Submitted {display.submittedAt} · AI-generated assessment
-          </p>
-        </div>
-        <Link to="/analyse" className="btn btn-outline shrink-0">
-          New analysis <ArrowRight size={16} />
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow="JOB ANALYSIS"
+        title={heading ?? "Job analysis"}
+        description={`Submitted ${display.submittedAt} · AI-generated assessment`}
+        action={
+          <Link to="/analyse" className="btn btn-outline shrink-0">
+            New analysis <ArrowRight size={16} />
+          </Link>
+        }
+      />
       {display.state !== "completed" ? (
         <div className="card p-9 sm:p-12 max-w-2xl">
           <div className="mb-5">
-            <StatusBadge status={data.status} />
+            <Badge tone={statusToneByStatus[data.status]}>
+              {data.status.replaceAll("_", " ")}
+            </Badge>
           </div>
           {display.state === "failed" ? (
             <>
@@ -115,9 +138,9 @@ export function ResultPage({
           )}
         </div>
       ) : result.isLoading ? (
-        <Loading label="Loading your analysis…" />
+        <LoadingState label="Loading your analysis…" />
       ) : result.isError ? (
-        <ErrorNotice
+        <ErrorState
           error={result.error}
           retry={() =>
             void resultController.refreshAnalysis(presenter, analysisId)
@@ -161,7 +184,9 @@ export function ResultPage({
                       <h3 className="font-semibold text-sm max-w-[75%]">
                         {req.requirement}
                       </h3>
-                      <StatusBadge status={req.status} />
+                      <Badge tone={statusToneByStatus[req.status]}>
+                        {req.status.replaceAll("_", " ")}
+                      </Badge>
                     </div>
                     <p className="muted text-sm leading-7">{req.explanation}</p>
                   </article>
@@ -291,11 +316,24 @@ export function ResultPage({
         >
           <RefreshCw size={16} /> Refresh
         </Button>
-        <Button variant="quiet" disabled={del.isPending} onClick={onDelete}>
+        <Button
+          variant="quiet"
+          disabled={del.isPending}
+          onClick={() => setDeleteDialogOpen(true)}
+        >
           Delete submission
         </Button>
       </div>
-      {del.isError && <ErrorNotice error={del.error} />}
+      {del.isError && <ErrorState error={del.error} />}
+      <ConfirmationDialog
+        open={deleteDialogOpen}
+        title="Delete this job submission?"
+        description="The analysis may remain stored by the AI service."
+        confirmLabel="Delete"
+        pending={del.isPending}
+        onConfirm={confirmDelete}
+        onClose={() => setDeleteDialogOpen(false)}
+      />
     </div>
   );
 }

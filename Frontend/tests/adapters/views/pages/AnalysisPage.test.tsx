@@ -48,6 +48,7 @@ function renderAnalyse(
               element={<AnalysisPage analysisController={analysisController} />}
             />
             <Route path="/jobs/:jobId" element={<h1>Submission created</h1>} />
+            <Route path="/profiles/new" element={<h1>Create a profile</h1>} />
           </Routes>
         </MemoryRouter>
       </AuthContext.Provider>
@@ -112,12 +113,15 @@ describe("candidate profile selection", () => {
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Create profile →" }),
-    ).toHaveAttribute("href", "/profiles/new");
-    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
-    expect(
       screen.getByRole("button", { name: "Analyse this job" }),
     ).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Create profile →" }));
+    expect(screen.getByLabelText("Current route")).toHaveTextContent(
+      "/profiles/new",
+    );
+    expect(
+      screen.getByRole("heading", { name: "Create a profile" }),
+    ).toBeInTheDocument();
   });
 
   it("shows profile load failures and allows the user to retry", async () => {

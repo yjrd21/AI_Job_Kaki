@@ -2,10 +2,20 @@ import { ArrowRight, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useAuthContext } from "../../AuthContext";
-import { Loading, ErrorNotice } from "../components/composed/Feedback";
-import { RecentAnalysisCard } from "../components/composed/RecentAnalysisCard";
+import { ErrorState } from "../components/composed/ErrorState";
+import { LoadingState } from "../components/composed/LoadingState";
+import { Badge, type BadgeTone } from "../components/primitives/Badge";
+import { Card } from "../components/primitives/Card";
+import type { JobStatus } from "../../../domain/models/Job";
 import type { DashboardController } from "../../controllers/DashboardController";
 import { DashboardPresenter } from "../../presenters/DashboardPresenter";
+
+const statusToneByStatus: Record<JobStatus, BadgeTone> = {
+  PENDING: "neutral",
+  PROCESSING: "warning",
+  COMPLETED: "success",
+  FAILED: "danger",
+};
 
 // Display the primary candidate context and most recent job analysis.
 export function DashboardPage({
@@ -46,7 +56,7 @@ export function DashboardPage({
           </Link>
         </section>
 
-        <section className="card p-7" aria-label="Primary Context">
+        <Card className="p-7" aria-label="Primary Context">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
             <h2 className="section-title">
               {primaryContext.state === "ready"
@@ -61,9 +71,9 @@ export function DashboardPage({
               )}
           </div>
           {primaryContext.state === "loading" ? (
-            <Loading label="Loading candidate profile…" />
+            <LoadingState label="Loading candidate profile…" />
           ) : primaryContext.state === "error" ? (
-            <ErrorNotice
+            <ErrorState
               error={primaryContext.error}
               retry={() =>
                 void dashboardController.loadPrimaryContext(userId, presenter)
@@ -115,7 +125,7 @@ export function DashboardPage({
               </Link>
             </>
           )}
-        </section>
+        </Card>
       </div>
 
       <section aria-label="Recent analyses">
@@ -125,12 +135,41 @@ export function DashboardPage({
             View job history →
           </Link>
         </div>
-        <RecentAnalysisCard
-          view={recentAnalysis}
-          onRetry={() =>
-            void dashboardController.loadRecentAnalysis(userId, presenter)
-          }
-        />
+        <Card className="p-7">
+          <p className="eyebrow mb-5">RECENT ANALYSIS</p>
+          {recentAnalysis.state === "loading" ? (
+            <LoadingState />
+          ) : recentAnalysis.state === "error" ? (
+            <ErrorState
+              error={recentAnalysis.error}
+              retry={() =>
+                void dashboardController.loadRecentAnalysis(userId, presenter)
+              }
+            />
+          ) : recentAnalysis.state === "empty" ? (
+            <>
+              <p className="muted text-sm mb-4">
+                Your first analysis will appear here.
+              </p>
+              <Link to="/analyse" className="link-text text-sm">
+                Analyse a job →
+              </Link>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <h3 className="font-semibold">{recentAnalysis.heading}</h3>
+                <Badge tone={statusToneByStatus[recentAnalysis.status]}>
+                  {recentAnalysis.status.replaceAll("_", " ")}
+                </Badge>
+              </div>
+              <p className="text-xs muted mb-4">{recentAnalysis.submittedAt}</p>
+              <Link to={recentAnalysis.href} className="link-text text-sm">
+                View analysis →
+              </Link>
+            </>
+          )}
+        </Card>
       </section>
     </div>
   );

@@ -21,8 +21,6 @@
   --color-quiet-hover: #e8efe9;
   --color-info-bg: #eef3ee;
   --color-link: #31594c;
-  --color-skeleton: #eeece7;
-  --color-skeleton-highlight: #f9f8f5;
 
   /* Set the shared dimensions used by the application shell. */
   --app-sidebar-width: 244px;

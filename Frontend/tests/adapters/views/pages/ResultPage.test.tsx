@@ -63,47 +63,33 @@ describe("job result through the use-case presenter boundary", () => {
   it("navigates to history after successful confirmed deletion", async () => {
     const { repositories } = showResult();
     await screen.findByText("Your analysis is in the queue.");
-    const confirmation = vi.spyOn(window, "confirm").mockReturnValue(true);
-    try {
-      fireEvent.click(
-        screen.getByRole("button", { name: "Delete submission" }),
-      );
-      await screen.findByText("Submission history");
-      expect(repositories.jobs.delete).toHaveBeenCalledExactlyOnceWith(
-        "user-id",
-        "job-id",
-      );
-    } finally {
-      confirmation.mockRestore();
-    }
+    fireEvent.click(screen.getByRole("button", { name: "Delete submission" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await screen.findByText("Submission history");
+    expect(repositories.jobs.delete).toHaveBeenCalledExactlyOnceWith(
+      "user-id",
+      "job-id",
+    );
   });
 
   it("retains the result page when deletion fails or is cancelled", async () => {
     const { repositories } = showResult();
     await screen.findByText("Your analysis is in the queue.");
-    const confirmation = vi.spyOn(window, "confirm").mockReturnValue(false);
-    try {
-      fireEvent.click(
+    fireEvent.click(screen.getByRole("button", { name: "Delete submission" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(repositories.jobs.delete).not.toHaveBeenCalled();
+    repositories.jobs.delete.mockRejectedValue(
+      new Error("Deletion unavailable"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Delete submission" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await screen.findByText("Deletion unavailable");
+    await waitFor(() =>
+      expect(
         screen.getByRole("button", { name: "Delete submission" }),
-      );
-      expect(repositories.jobs.delete).not.toHaveBeenCalled();
-      confirmation.mockReturnValue(true);
-      repositories.jobs.delete.mockRejectedValue(
-        new Error("Deletion unavailable"),
-      );
-      fireEvent.click(
-        screen.getByRole("button", { name: "Delete submission" }),
-      );
-      await screen.findByText("Deletion unavailable");
-      await waitFor(() =>
-        expect(
-          screen.getByRole("button", { name: "Delete submission" }),
-        ).toBeEnabled(),
-      );
-      expect(screen.queryByText("Submission history")).not.toBeInTheDocument();
-    } finally {
-      confirmation.mockRestore();
-    }
+      ).toBeEnabled(),
+    );
+    expect(screen.queryByText("Submission history")).not.toBeInTheDocument();
   });
 
   it("displays the public failure message and switches the recovery action to pasted text", async () => {
@@ -115,6 +101,7 @@ describe("job result through the use-case presenter boundary", () => {
         "We couldn't retrieve this LinkedIn posting. Please paste the full job description.",
     });
     await screen.findByText(/We couldn't retrieve this LinkedIn posting/);
+    expect(screen.getByText("FAILED")).toHaveClass("ui-badge--danger");
     expect(
       screen.getByRole("link", { name: /Paste job description/ }),
     ).toHaveAttribute("href", "/analyse?type=TEXT&context=profile-id");
@@ -264,6 +251,26 @@ describe("job result through the use-case presenter boundary", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       "Job analysis",
     );
+  });
+
+  it("uses a warning badge for partial requirement matches", async () => {
+    showResult(
+      { status: "COMPLETED", jobAnalysisId: "analysis-id" },
+      undefined,
+      undefined,
+      {
+        requirements: [
+          {
+            requirement: "Product strategy",
+            status: "PARTIALLY_MET",
+            explanation: "Some relevant experience is present.",
+          },
+        ],
+      },
+    );
+
+    expect(await screen.findByText("Product strategy")).toBeInTheDocument();
+    expect(screen.getByText("PARTIALLY MET")).toHaveClass("ui-badge--warning");
   });
 
   it("renders the generated role overview without the missing-overview action", async () => {

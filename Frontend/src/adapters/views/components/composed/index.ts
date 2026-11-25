@@ -1,7 +1,7 @@
 // Export reusable compositions built from UI primitives and application view behavior.
-export { AppShell } from "./AppShell";
-export { ConfirmDialog } from "./ConfirmDialog";
+export { AuthenticatedAppLayout } from "./AuthenticatedAppLayout";
+export { ConfirmationDialog } from "./ConfirmationDialog";
 export { PageHeader } from "./PageHeader";
-export { Loading, ErrorNotice, EmptyState } from "./Feedback";
-export { StatusBadge } from "./JobStatusBadge";
-export { RecentAnalysisCard } from "./RecentAnalysisCard";
+export { LoadingState } from "./LoadingState";
+export { ErrorState } from "./ErrorState";
+export { EmptyState } from "./EmptyState";

@@ -12,7 +12,8 @@ import { useAuthContext } from "../../AuthContext";
 import { Button } from "../components/primitives/Button";
 import { Alert } from "../components/primitives/Alert";
 import { StepProgress } from "../components/primitives/StepProgress";
-import { ErrorNotice, Loading } from "../components/composed/Feedback";
+import { ErrorState } from "../components/composed/ErrorState";
+import { LoadingState } from "../components/composed/LoadingState";
 import { OnboardingPresenter } from "../../presenters/OnboardingPresenter";
 import type { OnboardingController } from "../../controllers/OnboardingController";
 
@@ -53,10 +54,10 @@ export function OnboardingPage({
   // Render different screens based on the presenter's state.
   switch (view.screen) {
     case "loading":
-      return <Loading label="Checking onboarding status…" />;
+      return <LoadingState label="Checking onboarding status…" />;
     case "error":
       return (
-        <ErrorNotice
+        <ErrorState
           error={view.accountError}
           retry={() => {
             if (!userId) throw new Error("Onboarding requires a user ID");
@@ -292,7 +293,7 @@ export function OnboardingPage({
                 </p>
               )}
               {view.submissionError !== null && (
-                <ErrorNotice error={view.submissionError} />
+                <ErrorState error={view.submissionError} />
               )}
               <div className="flex justify-between gap-3 mt-8">
                 <Button

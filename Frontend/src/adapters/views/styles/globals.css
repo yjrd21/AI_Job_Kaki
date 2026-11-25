@@ -179,27 +179,6 @@ p {
   background: var(--color-neutral-bg);
   color: var(--color-neutral-text);
 }
-.status.COMPLETED,
-.status.MET {
-  background: var(--color-success-bg);
-  color: var(--color-success-text);
-}
-.status.PROCESSING,
-.status.PARTIALLY_MET {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
-}
-.status.FAILED,
-.status.NOT_MET {
-  background: var(--color-danger-bg);
-  color: var(--color-danger-text);
-}
-.status.UNKNOWN,
-.status.PENDING {
-  background: var(--color-neutral-bg);
-  color: var(--color-neutral-text);
-}
-
 /* Separate repeated report entries with consistent spacing and borders. */
 .entry-row {
   padding: 21px 0;
@@ -207,24 +186,6 @@ p {
 }
 .entry-row:last-child {
   border-bottom: 0;
-}
-
-/* Animate placeholder surfaces while content is loading. */
-.skeleton {
-  background: linear-gradient(
-    100deg,
-    var(--color-skeleton) 30%,
-    var(--color-skeleton-highlight) 48%,
-    var(--color-skeleton) 70%
-  );
-  background-size: 250% 100%;
-  animation: shimmer 1.8s infinite;
-  border-radius: 6px;
-}
-@keyframes shimmer {
-  to {
-    background-position-x: -250%;
-  }
 }
 
 /* Adjust card corners and display headings for smaller screens. */

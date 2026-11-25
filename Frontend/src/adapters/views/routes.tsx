@@ -1,7 +1,14 @@
-import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
-import { AppShell } from "./components/composed/AppShell";
+import {
+  createBrowserRouter,
+  Navigate,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+import { useState } from "react";
+import { AuthenticatedAppLayout } from "./components/composed/AuthenticatedAppLayout";
 import { useAuthContext } from "../AuthContext";
-import { Loading } from "./components/composed/Feedback";
+import { LoadingState } from "./components/composed/LoadingState";
 import { LoginPage } from "./pages/LoginPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -41,7 +48,7 @@ function Guard() {
   if (!auth.lifecycle.ready)
     return (
       <div className="p-10">
-        <Loading label="Connecting to identity provider…" />
+        <LoadingState label="Connecting to identity provider…" />
       </div>
     );
   if (!auth.session.authenticated) return <Navigate to="/login" replace />;
@@ -57,6 +64,27 @@ function Guard() {
     );
   return (
     <Outlet key={`${auth.session.userId}:${auth.lifecycle.sessionVersion}`} />
+  );
+}
+
+function AuthenticatedAppLayoutAdapter() {
+  const auth = useAuthContext();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [navigationOpen, setNavigationOpen] = useState(false);
+
+  return (
+    <AuthenticatedAppLayout
+      pathname={location.pathname}
+      userName={auth.session.name}
+      isNavigationOpen={navigationOpen}
+      onNavigate={(path) => void navigate(path)}
+      onOpenNavigation={() => setNavigationOpen(true)}
+      onCloseNavigation={() => setNavigationOpen(false)}
+      onLogout={() => void auth.actions.logout()}
+    >
+      <Outlet />
+    </AuthenticatedAppLayout>
   );
 }
 
@@ -79,7 +107,7 @@ export function createAppRouter(controllers: RouteControllers) {
           children: [
             { path: "/onboarding", element: null },
             {
-              element: <AppShell />,
+              element: <AuthenticatedAppLayoutAdapter />,
               children: [
                 {
                   path: "/dashboard",
