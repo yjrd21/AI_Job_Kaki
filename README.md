@@ -2,8 +2,6 @@
 
 JobKaki is a full-stack microservices web application built with Java, Spring Boot and React, with OpenAI integration. Candidates create a reusable profile containing their CV, target roles, work preferences and deal-breakers, then submit a job description or public LinkedIn job link for analysis. The application assesses the fit, searches online sources such as Glassdoor, and returns requirement comparisons, potential concerns and questions to clarify before applying or during an interview.
 
-> **Frontend refactoring (update: 24 November 2026):** The frontend is currently being refactored toward the ideal architecture. Starting with  [onboarding flow](Frontend/src/adapters/views/pages/OnboardingPage.tsx). Refactoring is planned for 23-28 November 2026.
-
 > **Note:** Running this project locally requires environment secrets that are not included in this repository. These must be configured separately before starting the application.
 
 ## Prototype Demo
@@ -51,16 +49,3 @@ Explore the [clickable prototypes in Figma](https://www.figma.com/design/TlqNS7H
 - View analysis progress, completed reports, and submission history.
 - Receive actionable failure messages when the job content or CV cannot be used.
 
-
-## Key Architectural Decisions and Tradeoffs
-
-| Architectural Decision | Rationale | Tradeoffs |
-| --- | --- | --- |
-| **Microservices with service-owned data** | • Clear ownership of users, job submissions, and AI analysis.<br>• Flexibility to deploy and scale services independently. | • More configuration, network dependencies, and operational overhead.<br>• A modular monolith would be simpler at this scale. |
-| **Application-wide Clean Architecture frontend** | • Experiment with explicit boundaries between UI, application logic, business models, and networking.<br>• Keep application operations independent of React, HTTP transport, and authentication SDKs. | • Additional boilerplate and learning curve.<br>• Simple changes span multiple files.<br>• Requires discipline around contracts and dependency wiring; some simple operations remain thin repository calls. |
-| **Asynchronous analysis through RabbitMQ** | • Let users continue using the application while analysis runs in the background.<br>• Decouple analysis requests from a specific application instance.<br>• Support expansion into multiple AI workers sharing a workload or specialised agents consuming separate queues.<br>• Buffer bursts of submissions when workers are busy. | • Additional infrastructure to configure and maintain.<br>• Queue backlogs increase waiting times.<br>• Processing capacity remains constrained by workers and external API limits.<br>• Database writes and message publication can fail separately. |
-| **Authentication delegated to Keycloak** | • Delegate login and token issuance to a dedicated identity provider.<br>• Use Authorization Code + PKCE for browser login.<br>• Validate JWTs at the gateway. | • Additional infrastructure and configuration.<br>• Application users must remain aligned with identity records.<br>• Resource ownership requires separate authorization checks. |
-| **API Gateway as a single entry point** | • Give the frontend one API endpoint.<br>• Centralise routing, token validation, and user synchronisation.<br>• Support future scaling through multiple gateway instances behind a load balancer. | • The current single gateway instance is a potential bottleneck and single point of failure.<br>• Gateway replication, rate limiting, and load testing remain future work.<br>• Additional network hop.<br>• User synchronisation couples requests to the User Service. |
-| **PostgreSQL and MongoDB persistence** | • Use PostgreSQL for relational user records.<br>• Use MongoDB for job submissions and nested analysis documents. | • Multiple database technologies to operate and maintain.<br>• A single database technology could meet the MVP’s needs. |
-| **Eureka service discovery** | • Route using service names rather than fixed instance addresses.<br>• Support changing service locations and adding replicas. | • Additional infrastructure and discovery complexity.<br>• Static addresses would be simpler for local deployment. |
-| **Centralised configuration with Config Server** | • Manage service configuration in one place.<br>• Reduce configuration scattered across applications. | • Introduce a startup dependency.<br>• Configuration changes can affect multiple services.<br>• Secret management requires separate consideration. |
