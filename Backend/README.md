@@ -1,12 +1,5 @@
 # JobKaki Backend
 
-## Job Analysis Processing
-
-![JobKaki backend job analysis sequence](docs/images/job-analysis-sequence.png)
-
-[View the sequence diagram in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=347-170)
-
-
 ## Service Responsibilities
 
 | Service                        | Default port | Responsibility                                                                                  |

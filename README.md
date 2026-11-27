@@ -18,7 +18,7 @@ https://github.com/user-attachments/assets/f9ce5087-dded-4cd3-9087-0dff081f73dd
 
 The [system architecture in Figma](https://www.figma.com/design/TlqNS7H8eS6y3poiiImCV9/Java-System-Architecture?node-id=41-30&p=f&m=draw) is the visual reference for services and infrastructure.
 
-For low-level design and example data flows, read the [frontend README](Frontend/README.md) and [backend README](Backend/README.md).
+For frontend design and backend service details, read the [frontend README](Frontend/README.md) and [backend README](Backend/README.md).
 
 ## Clickable Prototypes
 
